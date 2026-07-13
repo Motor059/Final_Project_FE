@@ -1,7 +1,7 @@
 ---
-name: 🔧 Documentation
+name: Documentation
 about: 문서화를 해야합니다.
-title: '📋 Docs: '
+title: ' Docs: '
 labels: 'documentation'
 ---
 

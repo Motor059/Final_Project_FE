@@ -1,7 +1,7 @@
 ---
-name: 🔧 Refactoring
+name:  Refactoring
 about: 리팩토링
-title: '🔧 Refactoring: '
+title: ' Refactoring: '
 labels: 'refactoring'
 ---
 

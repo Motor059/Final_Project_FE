@@ -1,7 +1,7 @@
 ---
-name: 🐛HotFix
+name: HotFix
 about: 치명적인 버그
-title: '🐛 Hot-Fix: '
+title: ' Hot-Fix: '
 labels: 'hotfix'
 ---
 

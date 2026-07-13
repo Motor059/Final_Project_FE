@@ -1,7 +1,7 @@
 ---
-name: 📋 Test
+name:  Test
 about: 테스트 코드
-title: '📋 Test: '
+title: ' Test: '
 labels: 'test'
 ---
 

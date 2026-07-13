@@ -1,7 +1,7 @@
 ---
-name: 🔧 Question
+name:  Question
 about: 궁금한 부분이 있어요.
-title: '❓ Question: '
+title: ' Question: '
 labels: 'question'
 ---
 
