@@ -60,3 +60,15 @@ export interface SkipTopicData {
     nextQuestionId?: number;
   };
 }
+
+// 채점 시작 요청 응답 타입 (POST /api/v1/sessions/{id}/feedback)
+export interface StartScoringData {
+  sessionId: number;
+  statusUrl: string;
+}
+
+// 채점 상태 폴링 응답 타입 (GET /api/v1/sessions/{id}/feedback/status)
+export interface PollingStatusData {
+  sessionId: number;
+  status: 'SCORING' | 'COMPLETED' | 'FAILED';
+}

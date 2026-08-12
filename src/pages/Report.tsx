@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft } from 'lucide-react';
 import Header from '@/components/common/Header';
 import ReportHero from '@/components/report/ReportHero';
 import ReportScoreBoard from '@/components/report/ReportScoreBoard';
