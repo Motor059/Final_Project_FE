@@ -53,10 +53,22 @@ export interface AnswerSubmitData {
   };
 }
 
-// 주제 건너뛰기 응답 데이터 타입
+// 주제 건너뛰기 응답 데이터 타입 (POST /api/v1/questions/{qid}/skip)
 export interface SkipTopicData {
   nextAction: {
     type: 'NEXT_MAIN' | 'FINISH';
     nextQuestionId?: number;
   };
+}
+
+// 채점 시작 요청 응답 타입 (POST /api/v1/sessions/{id}/feedback)
+export interface StartScoringData {
+  sessionId: number;
+  statusUrl: string;
+}
+
+// 채점 상태 폴링 응답 타입 (GET /api/v1/sessions/{id}/feedback/status)
+export interface PollingStatusData {
+  sessionId: number;
+  status: 'SCORING' | 'COMPLETED' | 'FAILED';
 }
