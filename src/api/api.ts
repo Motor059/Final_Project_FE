@@ -53,7 +53,7 @@ export interface AnswerSubmitData {
   };
 }
 
-// 주제 건너뛰기 응답 데이터 타입
+// 주제 건너뛰기 응답 데이터 타입 (POST /api/v1/questions/{qid}/skip)
 export interface SkipTopicData {
   nextAction: {
     type: 'NEXT_MAIN' | 'FINISH';
