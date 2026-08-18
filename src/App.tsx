@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route} from "react-router-dom";
 import StyleGuide from "./pages/StyleGuide";
 import Interview from "./pages/Interview";
+import Setup from "./pages/Setup";
 import ReportPage from "./pages/Report";
 import HomePage from "./pages/Home";
 
@@ -10,6 +11,7 @@ export default function App() {
       <Routes>
         <Route path="/home" element={<HomePage />} />
         <Route path="/" element={<StyleGuide />} />
+        <Route path="/setup" element={<Setup />} />
         <Route path="/interview" element={<Interview />} />
         <Route path="/report" element={<ReportPage />} />
       </Routes>
