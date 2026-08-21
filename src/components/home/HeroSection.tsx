@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+
 interface HeroSectionProps {
   isLoggedIn: boolean;
   userName?: string;
@@ -5,6 +7,8 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ isLoggedIn, userName, lastSetting }: HeroSectionProps) {
+  const navigate = useNavigate();
+  
   return (
     <section className="relative pt-[90px] pb-[30px] animate-fade-in">
       <div 
@@ -39,6 +43,7 @@ export default function HeroSection({ isLoggedIn, userName, lastSetting }: HeroS
           <button 
             className="text-[16px] font-semibold text-white px-[32px] py-[16px] rounded-[14px] shadow-[0_10px_30px_rgba(10,10,10,0.2)]"
             style={{ background: 'linear-gradient(135deg, rgb(42, 37, 64) 0%, rgb(10, 10, 10) 62%)' }}
+            onClick={() => navigate('/setup')}
           >
             모의면접 시작
           </button>

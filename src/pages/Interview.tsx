@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // ✨ 1. useNavigate 추가
 import { useInterviewStore } from "@/store/useInterviewStore";
 import InterviewHeader from "@/components/interview/InterviewHeader";
 import QuestionOrb from "@/components/interview/QuestionOrb";
@@ -8,9 +9,17 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import Header from "@/components/common/Header";
 
 export default function Interview() {
-const { phase, setPhase, proceedToNextQuestion } = useInterviewStore();
+  const navigate = useNavigate();
+  const { phase, setPhase, proceedToNextQuestion, isFinished } = useInterviewStore();
+  
   useInterviewTimer();
   useSpeechRecognition();
+
+  useEffect(() => {
+    if (isFinished) {
+      navigate('/report', { replace: true }); 
+    }
+  }, [isFinished, navigate]);
 
   // [면접 흐름 제어기] : PREPARING -> ASKING -> RECORDING -> THINKING
   useEffect(() => {
@@ -32,15 +41,12 @@ const { phase, setPhase, proceedToNextQuestion } = useInterviewStore();
   }, [phase, setPhase, proceedToNextQuestion]);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center">
+    <div className="min-h-screen bg-white flex flex-col items-center pt-[68px]">
       <div className="sticky top-0 z-50 w-full bg-white flex flex-col">
         <Header />        
         <header className="relative w-full h-[68px] backdrop-blur-md border-border flex items-center justify-center px-6 md:px-10">
-          <button className="absolute left-6 md:left-10 text-xl font-bold hover:opacity-70 p-2">
-            〈
-          </button>
           {phase !== "PREPARING" && (
-            <div className="w-full max-w-[840px]">
+            <div className="w-full max-w-[840px] px-12 md:px-16">
               <InterviewHeader />
             </div> 
           )}

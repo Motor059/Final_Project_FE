@@ -1,3 +1,5 @@
+import {useNavigate} from 'react-router-dom';
+
 const Step1Mockup = () => (
   <div className="bg-[#FAFAF9] border border-[#E7E5E4] rounded-[18px] p-[28px] shadow-sm relative overflow-hidden">
     {/* 우하단 오로라 */}
@@ -200,6 +202,8 @@ const Step3Mockup = () => (
 );
 
 export default function TutorialSection() {
+  const navigate = useNavigate();
+
   return (
     <section className="py-[80px] px-[50px]">
       {/* 헤더 */}
@@ -259,6 +263,7 @@ export default function TutorialSection() {
         <button 
           className="text-[16px] font-semibold text-white px-[34px] py-[16px] rounded-[14px] shadow-[0_10px_30px_rgba(10,10,10,0.18)]"
           style={{ background: 'linear-gradient(135deg, rgb(42, 37, 64) 0%, rgb(10, 10, 10) 62%)' }}
+          onClick={() => navigate('/setup')}
         >
           지금 바로 시작하기
         </button>
