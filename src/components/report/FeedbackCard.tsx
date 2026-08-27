@@ -65,11 +65,10 @@ export default function FeedbackCard({ data, index }: FeedbackCardProps) {
           {isDeepOpen && (
             <div className="mt-[20px] border-t border-[#F0EFED] pt-[20px] animate-in fade-in">
               
-              {/* 약한 축 */}
               <div className="mb-[24px]">
                 <div className="text-[12.5px] font-semibold text-[#57534E] mb-[8px]">약한 축</div>
                 <div className="text-[13.5px] leading-[1.55] text-[#78716C]">
-                  기술 선택 근거 축이 약했어요. 비교 대상은 짚었지만 수치 근거 없이 추측으로 끝났습니다.
+                  {data.weakAxis}
                 </div>
               </div>
 
@@ -132,8 +131,7 @@ function TailQuestionBlock({ tail }: { tail: TailQuestion }) {
         <FeedbackRow label="다음엔" colorClass="text-white bg-[#0A0A0A]" text={tail.next} />
       </div>
 
-      {/* 피드백 보기/닫기 토글 버튼 */}
-      {(tail.weakAxisText || tail.improvedAnswer) && (
+      {(tail.weakAxis || tail.improvedAfter) && (
         <button 
           onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
           className="text-[12.5px] text-[#A8A29E] underline underline-offset-4 hover:text-[#57534E] transition-colors mb-[14px]"
@@ -142,29 +140,23 @@ function TailQuestionBlock({ tail }: { tail: TailQuestion }) {
         </button>
       )}
 
-      {/* 심화 피드백 영역 (토글 시 노출) */}
-      {isFeedbackOpen && tail.weakAxisText && tail.improvedAnswer && (
+      {/* ✨ 수정: 심화 피드백 영역 API 구조 일치 */}
+      {isFeedbackOpen && tail.weakAxis && tail.improvedAfter && (
         <div className="border-t border-[#F0EFED] pt-[16px] animate-in fade-in slide-in-from-top-1">
           <div className="mb-[20px]">
             <div className="text-[12px] font-semibold text-[#57534E] mb-[6px]">약한 축</div>
             <div className="text-[13px] leading-[1.55] text-[#78716C]">
-              {tail.weakAxisText}
+              {tail.weakAxis}
             </div>
           </div>
 
           <div>
             <div className="text-[12px] font-semibold text-[#57534E] mb-[10px]">개선된 답변 예시</div>
             
-            {/* Before */}
-            <div className="bg-[#FAFAF9] border border-[#F0EFED] rounded-[11px] p-[14px] mb-[8px]">
-              <div className="text-[11px] font-semibold text-[#9A3412] mb-[6px]">Before · 내 답변</div>
-              <p className="text-[12.5px] leading-[1.6] text-[#78716C]">{tail.improvedAnswer.before}</p>
-            </div>
-            
-            {/* After */}
+            {/* After만 표시 (꼬리질문은 before가 본문 answer이므로 생략) */}
             <div className="bg-[#0A0A0A] rounded-[11px] p-[14px]">
               <div className="text-[11px] font-semibold text-[#15803D] mb-[6px]">After · 개선된 답변</div>
-              <p className="text-[12.5px] leading-[1.6] text-[#E7E5E4]">{tail.improvedAnswer.after}</p>
+              <p className="text-[12.5px] leading-[1.6] text-[#E7E5E4]">{tail.improvedAfter}</p>
             </div>
           </div>
         </div>

@@ -91,7 +91,7 @@ export default function Setup() {
     );
 
     resetInterview();
-    navigate("/interview");
+    navigate("/interview", { state: { sessionId: 101 } }); // 임시 세션 ID, 실제로는 서버에서 발급받아야 함
   };
 
   return (

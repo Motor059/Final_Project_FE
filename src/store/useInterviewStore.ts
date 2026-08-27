@@ -1,106 +1,177 @@
 import { create } from 'zustand';
-
-export interface Question {
-  type: 'main' | 'deep';
-  main: number;
-  tag?: 'Why' | 'What-if' | 'Action' | 'Deep';
-  q: string;
-}
+import { interviewApi } from '@/api/interviewApi';
+import type { CurrentQuestionData } from '@/api/api';
+import { isAxiosError } from 'axios';
 
 interface InterviewState {
-  script: Question[];       
-  qIndex: number;           
+  sessionId: number | null;
+  currentQuestion: CurrentQuestionData | null;
   
   phase: 'PREPARING' | 'ASKING' | 'RECORDING' | 'THINKING'; 
   inputMode: 'AUDIO' | 'TEXT';                              
   answerText: string;                                       
   timeLeft: number;       
-  isFinished: boolean; // 면접 종료 상태 추가                                  
+  isFinished: boolean;
 
+  setSessionId: (id: number) => void;
   setPhase: (phase: InterviewState['phase']) => void;
   setInputMode: (mode: InterviewState['inputMode']) => void;
   setAnswerText: (text: string) => void;
   setTimeLeft: (time: number | ((prev: number) => number)) => void;
-  nextQuestion: () => void;
-  proceedToNextQuestion: () => void;
   resetInterview: () => void;
-  skipToNextMain: () => void;
+
+  startAndFetchFirstQuestion: (sessionId: number) => Promise<void>;
+  fetchNextQuestion: () => Promise<void>;
+  submitTextAnswerAndNext: () => Promise<void>;
+  submitAudioAnswerAndNext: (audioBlob: Blob, durationSeconds: number) => Promise<void>;
+  skipToNextMain: () => Promise<void>;
+  cancelCurrentSession: () => Promise<void>;
 }
 
-// 임시 질문 스크립트와 상태를 관리하는 Zustand 스토어 생성
-export const useInterviewStore = create<InterviewState>((set) => ({
-  script: [
-    { type: 'main', main: 1, q: '최근 진행한 프로젝트에서 동시성 문제를 마주쳤던 경험과, 그걸 어떻게 해결했는지 설명해주세요.' },
-    { type: 'deep', main: 1, tag: 'Why', q: '왜 DB 락이 아니라 그 방식을 선택하셨나요? 다른 대안은 없었나요?' },
-    { type: 'deep', main: 1, tag: 'What-if', q: '트래픽이 지금의 10배로 늘어난다면 그 방식은 여전히 유효할까요?' },
-    { type: 'main', main: 2, q: '대용량 트래픽을 견디기 위해 캐시를 어떻게 설계하셨는지 말씀해주세요.' },
-    { type: 'deep', main: 2, tag: 'Why', q: '대용량 트래픽을 견디기 위해 캐시를 어떻게 설계하셨는지 말씀해주세요.' },
-    { type: 'main', main: 3, q: '세번째 메인 질문' },
-    { type: 'deep', main: 3, tag: 'Why', q: '세번째 메인 질문의 꼬리 질문' },
-    { type: 'main', main: 4, q: '네번째 메인 질문' },
-    { type: 'deep', main: 4, tag: 'Why', q: '네번째 메인 질문의 꼬리 질문' },
-    { type: 'main', main: 5, q: '다섯번째 메인 질문' },
-    { type: 'deep', main: 5, tag: 'Why', q: '다섯번째 메인 질문의 꼬리 질문' }
-  ],
-  qIndex: 0,
+export const useInterviewStore = create<InterviewState>((set, get) => ({
+  sessionId: null,
+  currentQuestion: null,
   phase: 'PREPARING',
   inputMode: 'AUDIO',
   answerText: '',
   timeLeft: 180,
-  isFinished: false, // 초기 면접 종료 상태는 false
+  isFinished: false,
 
+  setSessionId: (id) => set({ sessionId: id }),
   setPhase: (phase) => set({ phase }),
   setInputMode: (mode) => set({ inputMode: mode }),
   setAnswerText: (text) => set({ answerText: text }),
   setTimeLeft: (time) => set((state) => ({ 
     timeLeft: typeof time === 'function' ? time(state.timeLeft) : time 
   })),
-  
-  nextQuestion: () => set({ phase: 'THINKING' }),
-  
-  proceedToNextQuestion: () => set((state) => {
-    const nextIdx = state.qIndex + 1;
-    if (nextIdx < state.script.length) {
-      return { 
-        qIndex: nextIdx, 
-        phase: 'ASKING',    
-        answerText: '',     
-        timeLeft: 180       
-      };
-    }
-    return { isFinished: true }; // 모든 질문을 완료하면 면접 종료 상태를 true로 설정
-  }),
 
   resetInterview: () => set({
-    qIndex: 0,
+    sessionId: null,
+    currentQuestion: null,
     phase: 'PREPARING',
     inputMode: 'AUDIO',
     answerText: '',
     timeLeft: 180,
-    isFinished: false // 면접 재시작 시 종료 상태를 false로 초기화
+    isFinished: false
   }),
 
-  // 현재 메인 주제를 탈출하여 다음 메인 질문으로 정확히 점프하는 함수
-  skipToNextMain: () => set((state) => {
-    const currentQ = state.script[state.qIndex];
-    const currentMainId = currentQ?.main;
-
-    // 현재 내 위치(state.qIndex) 이후부터 탐색하여 메인 번호가 바뀌는 첫 번째 인덱스를 찾음
-    const nextMainIdx = state.script.findIndex(
-      (item, idx) => idx > state.qIndex && item.main !== currentMainId
-    );
-
-    // 다음 메인 질문이 존재한다면 정확히 그곳으로 점프
-    if (nextMainIdx !== -1) {
-      return {
-        qIndex: nextMainIdx,
-        phase: 'ASKING', // 로딩 없이 곧바로 다음 메인 질문의 ASKING 단계로 진입
-        answerText: '',
-        timeLeft: 180
-      };
+  // 면접 시작 및 첫 질문 세팅
+  startAndFetchFirstQuestion: async (sessionId: number) => {
+    set({ sessionId, phase: 'PREPARING' });
+    try {
+      await interviewApi.startSession(sessionId); 
+      
+      await get().fetchNextQuestion();
+    } catch (error) {
+      console.error("면접 시작 에러:", error);
     }
-    
-    // 더 이상 다음 메인 질문이 없다면(마지막 질문인 경우) 면접 종료 상태로 변경
-    return {isFinished: true};
-  }),
+  },
+
+  // 다음 질문 조회
+  fetchNextQuestion: async () => {
+    const { sessionId } = get();
+    if (!sessionId) return;
+
+    try {
+      const questionData = await interviewApi.getCurrentQuestion(sessionId);
+      
+      set({ 
+        currentQuestion: questionData, 
+        phase: 'ASKING', 
+        answerText: '',
+        timeLeft: 180 
+      });
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 409) {
+        console.log("진행할 질문이 없습니다. 면접을 종료합니다.");
+        set({ isFinished: true });
+        return;
+      }
+      console.error("질문 조회 에러:", error);
+    }
+  },
+
+  // 텍스트 답변 제출 및 nextAction 처리
+  submitTextAnswerAndNext: async () => {
+    const { currentQuestion, answerText } = get();
+    if (!currentQuestion || !answerText.trim()) return;
+
+    set({ phase: 'THINKING' });
+
+    try {
+      const result = await interviewApi.submitTextAnswer(currentQuestion.questionId, answerText);
+      const { type, message } = result.nextAction;
+
+      if (type === 'FINISH') {
+        set({ isFinished: true });
+      } else if (type === 'RETRY_INPUT') {
+        alert(message || "답변이 너무 짧습니다. 다시 입력해 주세요.");
+        set({ phase: 'RECORDING' });
+      } else {
+        await get().fetchNextQuestion();
+      }
+    } catch (error) {
+      console.error("텍스트 답변 제출 에러:", error);
+      set({ phase: 'RECORDING' }); 
+    }
+  },
+
+  // 음성 답변 제출 및 nextAction 처리
+  submitAudioAnswerAndNext: async (audioBlob: Blob, durationSeconds: number) => {
+    const { currentQuestion } = get();
+    if (!currentQuestion) return;
+
+    set({ phase: 'THINKING' }); 
+
+    try {
+      const result = await interviewApi.submitAudioAnswer(currentQuestion.questionId, audioBlob, durationSeconds);
+      const { type, message } = result.nextAction;
+
+      if (type === 'FINISH') {
+        set({ isFinished: true });
+      } else if (type === 'RETRY_INPUT') {
+        alert(message || "음성이 잘 인식되지 않았습니다. 다시 녹음해 주세요.");
+        set({ phase: 'RECORDING' });
+      } else {
+        await get().fetchNextQuestion();
+      }
+    } catch (error) {
+      console.error("음성 답변 제출 에러:", error);
+      set({ phase: 'RECORDING' });
+    }
+  },
+
+  // 질문 스킵 및 nextAction 처리
+  skipToNextMain: async () => {
+    const { currentQuestion } = get();
+    if (!currentQuestion) return;
+
+    set({ phase: 'PREPARING' });
+
+    try {
+      const result = await interviewApi.skipTopic(currentQuestion.questionId);
+      const { type } = result.nextAction;
+
+      if (type === 'FINISH') {
+        set({ isFinished: true });
+      } else {
+        await get().fetchNextQuestion();
+      }
+    } catch (error) {
+      console.error("질문 스킵 에러:", error);
+      set({ phase: 'RECORDING' });
+    }
+  },
+
+  // 세션 폐기
+  cancelCurrentSession: async () => {
+    const { sessionId } = get();
+    if (!sessionId) return;
+    try {
+      await interviewApi.cancelSession(sessionId);
+      get().resetInterview();
+    } catch (error) {
+      console.error("세션 폐기 에러:", error);
+    }
+  }
 }));

@@ -3,8 +3,7 @@ import { useInterviewStore } from "@/store/useInterviewStore";
 import { OrbEngine, type OrbState } from "@/lib/OrbEngine";
 
 export default function QuestionOrb() {
-  const { phase, script, qIndex } = useInterviewStore();
-  const currentQ = script[qIndex];
+  const { phase, currentQuestion } = useInterviewStore();
   const [displayedText, setDisplayedText] = useState("");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -12,12 +11,13 @@ export default function QuestionOrb() {
   const engineRef = useRef<OrbEngine | null>(null);
 
   useEffect(() => {
-    if (!currentQ?.q) return;
+    if (!currentQuestion?.content) return;
 
     if (phase === "ASKING") {
       setDisplayedText(""); 
       let currentIndex = 0;
-      const fullText = currentQ.q;
+      const fullText = currentQuestion.content;
+      
       const typingInterval = setInterval(() => {
         if (currentIndex < fullText.length) {
           setDisplayedText(fullText.slice(0, currentIndex + 1));
@@ -26,18 +26,16 @@ export default function QuestionOrb() {
           clearInterval(typingInterval);
         }
       }, 60);
+      
       return () => clearInterval(typingInterval);
     } else {
-      setDisplayedText(currentQ.q);
+      setDisplayedText(currentQuestion.content);
     }
-  }, [currentQ?.q, phase]);
+  }, [currentQuestion?.content, phase]);
 
   // OrbEngine 생성 (캔버스가 마운트된 직후 1회만 생성)
   useEffect(() => {
-    // PREPARING 상태라 캔버스가 없거나, 이미 엔진이 있다면 무시
     if (phase === "PREPARING" || !canvasRef.current || engineRef.current) return;
-
-    // 캔버스가 DOM에 등장하면 최초 1회 엔진 생성
     engineRef.current = new OrbEngine(canvasRef.current, bgRef.current);
   }, [phase]);
 
@@ -53,7 +51,7 @@ export default function QuestionOrb() {
     engineRef.current.setState(orbState);
   }, [phase]);
 
-  // 컴포넌트가 완전히 화면에서 사라질 때만 메모리 해제
+  // 메모리 해제
   useEffect(() => {
     return () => {
       if (engineRef.current) {
@@ -84,7 +82,6 @@ export default function QuestionOrb() {
       
       {/* 160x160 오로라 구슬 영역 */}
       <div className="relative flex items-center justify-center w-[160px] h-[160px]">
-        
         {/* 레이어 0: 배경 글로우 */}
         <div 
           ref={bgRef}

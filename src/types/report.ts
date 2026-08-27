@@ -31,15 +31,11 @@ export interface TailQuestion {
   strategy: string;
   question: string;
   answer: string;
-  comment?: string;
   good: string;
   weak: string;
   next: string;
-  weakAxisText?: string;
-  improvedAnswer?: {
-    before: string;
-    after: string;
-  };
+  weakAxis: string;
+  improvedAfter: string;
 }
 
 export interface FeedbackCardData {
@@ -52,16 +48,16 @@ export interface FeedbackCardData {
   good: string;
   weak: string;
   next: string;
-  weakAxis: string[];
+  weakAxis: string;
   improvedAnswer: ImprovedAnswer;
   tails: TailQuestion[];
 }
 
 export interface DeliveryInfo {
-  speechSpeed: string;
-  speechSpeedNote: string;
-  fillerWordCount: number;
-  fillerWordNote: string;
+  speechSpeed: string | null;
+  speechSpeedNote: string | null;
+  fillerWordCount: number | null;
+  fillerWordNote: string | null;
 }
 
 export interface ReportResponseData {
