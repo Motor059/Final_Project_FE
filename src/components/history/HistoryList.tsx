@@ -4,7 +4,7 @@ export interface InterviewHistoryItem {
   company: string;
   role: string;
   stage: string;
-  score: number;
+  score?: number;
 }
 
 interface HistoryListProps {
@@ -72,7 +72,7 @@ export default function HistoryList({
                 </p>
 
                 <p className="mt-1 text-[22px] font-semibold leading-none text-foreground">
-                  {item.score}
+                   {item.score ?? "-"}
                 </p>
               </div>
 
