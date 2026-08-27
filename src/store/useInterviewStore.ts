@@ -14,7 +14,8 @@ interface InterviewState {
   phase: 'PREPARING' | 'ASKING' | 'RECORDING' | 'THINKING'; 
   inputMode: 'AUDIO' | 'TEXT';                              
   answerText: string;                                       
-  timeLeft: number;                                         
+  timeLeft: number;       
+  isFinished: boolean; // 면접 종료 상태 추가                                  
 
   setPhase: (phase: InterviewState['phase']) => void;
   setInputMode: (mode: InterviewState['inputMode']) => void;
@@ -46,6 +47,7 @@ export const useInterviewStore = create<InterviewState>((set) => ({
   inputMode: 'AUDIO',
   answerText: '',
   timeLeft: 180,
+  isFinished: false, // 초기 면접 종료 상태는 false
 
   setPhase: (phase) => set({ phase }),
   setInputMode: (mode) => set({ inputMode: mode }),
@@ -66,7 +68,7 @@ export const useInterviewStore = create<InterviewState>((set) => ({
         timeLeft: 180       
       };
     }
-    return state; 
+    return { isFinished: true }; // 모든 질문을 완료하면 면접 종료 상태를 true로 설정
   }),
 
   resetInterview: () => set({
@@ -74,7 +76,8 @@ export const useInterviewStore = create<InterviewState>((set) => ({
     phase: 'PREPARING',
     inputMode: 'AUDIO',
     answerText: '',
-    timeLeft: 180
+    timeLeft: 180,
+    isFinished: false // 면접 재시작 시 종료 상태를 false로 초기화
   }),
 
   // 현재 메인 주제를 탈출하여 다음 메인 질문으로 정확히 점프하는 함수
@@ -97,7 +100,7 @@ export const useInterviewStore = create<InterviewState>((set) => ({
       };
     }
     
-    // 더 이상 다음 메인 질문이 없다면(마지막 질문인 경우) 현재 상태 유지
-    return state;
+    // 더 이상 다음 메인 질문이 없다면(마지막 질문인 경우) 면접 종료 상태로 변경
+    return {isFinished: true};
   }),
 }));
