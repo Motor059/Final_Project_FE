@@ -8,6 +8,7 @@ import PdfDropzone from "./PdfDropzone";
 
 interface AdvancedSettingProps {
   jobRole: string;
+  jobRoleOptions: string[];
   companyName: string;
   jobDescription: string;
   documentFile: File | null;
@@ -19,6 +20,7 @@ interface AdvancedSettingProps {
 
 export default function AdvancedSetting({
   jobRole,
+  jobRoleOptions,
   companyName,
   jobDescription,
   documentFile,
@@ -85,6 +87,7 @@ export default function AdvancedSetting({
               <div className="mt-2.5">
                 <JobRoleChips
                   value={jobRole}
+                  options={jobRoleOptions}
                   onChange={onJobRoleChange}
                 />
               </div>
