@@ -4,12 +4,26 @@ import { Textarea } from "@/components/ui/textarea";
 import AudioWaveform from "./AudioWaveform";
 
 export default function ActionController() {
-  const { phase, inputMode, setInputMode, answerText, setAnswerText, timeLeft, nextQuestion, skipToNextMain } = useInterviewStore();
+  const { 
+    phase, inputMode, setInputMode, 
+    answerText, setAnswerText, timeLeft, 
+    submitTextAnswerAndNext, 
+    skipToNextMain 
+  } = useInterviewStore();
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = String(seconds % 60).padStart(2, "0");
     return `${m}:${s}`;
+  };
+
+  // 답변 제출 핸들러
+  const handleSubmit = () => {
+    if (inputMode === "TEXT") {
+      submitTextAnswerAndNext();
+    } else {
+      alert("음성 답변 제출 로직은 아직 구현 중입니다. 텍스트로 전환하여 제출해주세요.");
+    }
   };
 
   if (phase !== "RECORDING") return <div className="h-[200px]" />; 
@@ -27,7 +41,8 @@ export default function ActionController() {
               value={answerText}
               onChange={(e) => setAnswerText(e.target.value)}
               placeholder="답변을 텍스트로 입력하세요..." 
-              className="w-full min-h-[180px] text-base p-6 leading-relaxed resize-none border-[#E0DEDA] focus-visible:ring-black shadow-sm"            />
+              className="w-full min-h-[180px] text-base p-6 leading-relaxed resize-none border-[#E0DEDA] focus-visible:ring-black shadow-sm"            
+            />
           </div>
         )}        
       </div>
@@ -45,7 +60,7 @@ export default function ActionController() {
         <Button 
           size="lg" 
           className="px-8 py-6 rounded-xl text-base font-semibold shadow-sm bg-[#111111] hover:bg-black transition-colors" 
-          onClick={nextQuestion}
+          onClick={handleSubmit}
         >
           답변 완료
         </Button>

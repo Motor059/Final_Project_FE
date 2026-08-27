@@ -1,11 +1,11 @@
 import { api } from './axios';
-import type { ApiResponse, SessionData, CurrentQuestionData, AnswerSubmitData, SkipTopicData } from './api';
+import type { ApiResponse, SessionData, CurrentQuestionData, AnswerSubmitData, SkipTopicData,StartInterviewData, AnalyzeSessionData } from './api';
 
 export const interviewApi = {
   // 세션 조회 API
   getSessionInfo: async (sessionId: number): Promise<SessionData> => {
     const response = await api.get<ApiResponse<SessionData>>(`/api/v1/sessions/${sessionId}`);
-    return response.data.data; // { code, message, data } 중 안쪽 data만 바로 리턴
+    return response.data.data;
   },
 
   // 현재 질문 조회 API
@@ -46,6 +46,18 @@ export const interviewApi = {
   // 주제 건너뛰기 API
   skipTopic: async (questionId: number): Promise<SkipTopicData> => {
     const response = await api.post<ApiResponse<SkipTopicData>>(`/api/v1/questions/${questionId}/skip`);
+    return response.data.data;
+  },
+
+  // 면접 시작 API
+  startSession: async (sessionId: number): Promise<StartInterviewData> => {
+    const response = await api.post<ApiResponse<StartInterviewData>>(`/api/v1/sessions/${sessionId}/start`);
+    return response.data.data;
+  },
+
+  // 채점 요청 API
+  analyzeSession: async (sessionId: number): Promise<AnalyzeSessionData> => {
+    const response = await api.post<ApiResponse<AnalyzeSessionData>>(`/api/v1/sessions/${sessionId}/analyze`);
     return response.data.data;
   },
 };

@@ -36,7 +36,7 @@ export interface CurrentQuestionData {
 
 export type NextActionType = 'FOLLOW_UP' | 'NEXT_MAIN' | 'FINISH' | 'RETRY_INPUT';
 
-// 음성/텍스트 답변 제출 응답 데이터 타입 (POST /api/v1/answers/audio)
+// 음성/텍스트 답변 제출 응답 데이터 타입 (POST /api/v1/answers/audio, text)
 export interface AnswerSubmitData {
   answer: {
     answerId: number;
@@ -71,4 +71,21 @@ export interface StartScoringData {
 export interface PollingStatusData {
   sessionId: number;
   status: 'SCORING' | 'COMPLETED' | 'FAILED';
+}
+
+// 면접 시작 응답 데이터 타입 (POST /api/v1/sessions/{id}/start)
+export interface StartInterviewData {
+  sessionId: number;
+  status: string;
+  firstQuestion: {
+    questionId: number;
+    seq: number;
+    content: string;
+  };
+}
+
+// 채점 요청 응답 데이터 타입 (POST /api/v1/sessions/{id}/analyze)
+export interface AnalyzeSessionData {
+  sessionId: number;
+  status: string;
 }

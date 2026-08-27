@@ -6,6 +6,7 @@ import MyPage from "./pages/MyPage";
 import Setup from "./pages/Setup";
 import ReportPage from "./pages/Report";
 import HomePage from "./pages/Home";
+import KakaoCallback from "./pages/KakaoCallback";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/history" element={<History />} />
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/report" element={<ReportPage />} />
+        <Route path="/oauth/callback/kakao" element={<KakaoCallback />} />
       </Routes>
     </BrowserRouter>
   );

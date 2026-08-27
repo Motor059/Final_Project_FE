@@ -2,12 +2,14 @@ import { create } from 'zustand';
 import { getMyInfo } from '@/api/userApi';
 import { getHistoryList } from '@/api/historyApi';
 import type { UserResponse } from '@/types/user';
+import { authApi } from '@/api/authApi';
 
 interface AuthState {
   isLoggedIn: boolean;
   user: UserResponse | null;
   lastSetting: string | null;
   fetchUserInfo: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const formatCompanyType = (type: string) => {
@@ -51,6 +53,19 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     } catch (error) {
       set({ isLoggedIn: false, user: null, lastSetting: null });
+    }
+  },
+
+  logout: async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.warn('서버 로그아웃 통신 실패. 로컬 데이터만 삭제합니다.', error);
+    } finally {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      set({ isLoggedIn: false, user: null, lastSetting: null });
+      window.location.href = '/home';
     }
   },
 }));

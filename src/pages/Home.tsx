@@ -10,7 +10,10 @@ export default function HomePage() {
   const { isLoggedIn, user, lastSetting, fetchUserInfo } = useAuthStore();
 
   useEffect(() => {
-    fetchUserInfo();
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      fetchUserInfo();
+    }
   }, [fetchUserInfo]);
 
   return (
@@ -23,7 +26,10 @@ export default function HomePage() {
           lastSetting={lastSetting} 
         />
         <FeatureSection />
+        
+        {/* 비로그인 상태일 때만 튜토리얼 노출 */}
         {!isLoggedIn && <TutorialSection />}
+        
         <Footer />
       </main>
     </>
