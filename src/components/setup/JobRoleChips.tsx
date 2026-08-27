@@ -1,24 +1,17 @@
 interface JobRoleChipsProps {
   value: string;
+  options: string[];
   onChange: (value: string) => void;
 }
 
-const JOB_ROLES = [
-  "백엔드",
-  "프론트엔드",
-  "풀스택",
-  "데이터",
-  "AI/ML",
-  "DevOps",
-];
-
 export default function JobRoleChips({
   value,
+  options,
   onChange,
 }: JobRoleChipsProps) {
   return (
     <div className="flex flex-wrap gap-2">
-      {JOB_ROLES.map((role) => {
+      {options.map((role) => {
         const selected = value === role;
 
         return (

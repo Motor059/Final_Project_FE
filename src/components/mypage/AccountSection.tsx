@@ -1,9 +1,11 @@
 interface AccountSectionProps {
   onLogout: () => void;
+  onWithdraw: () => void;
 }
 
 export default function AccountSection({
   onLogout,
+  onWithdraw,
 }: AccountSectionProps) {
   return (
     <section>
@@ -31,15 +33,22 @@ export default function AccountSection({
 
         <div className="h-px bg-border" />
 
-        <div className="flex items-center justify-between px-5 py-4">
-          <span className="text-[14px] text-muted-foreground">
+        <button
+          type="button"
+          onClick={onWithdraw}
+          className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted"
+        >
+          <span className="text-[14px] font-medium text-destructive">
             회원 탈퇴
           </span>
 
-          <span className="rounded-lg bg-muted px-2.5 py-1 text-[11.5px] font-semibold text-muted-foreground">
-            준비 중
+          <span
+            aria-hidden="true"
+            className="text-[15px] text-muted-foreground"
+          >
+            →
           </span>
-        </div>
+        </button>
       </div>
     </section>
   );

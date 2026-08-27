@@ -1,21 +1,39 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 import Header from "@/components/common/Header";
 import AccountSection from "@/components/mypage/AccountSection";
 import DocumentList, {
   type SupportDocument,
 } from "@/components/mypage/DocumentList";
+import useMyPage from "@/hooks/useMyPage";
 
 export default function MyPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [documents, setDocuments] = useState<SupportDocument[]>([]);
+  const {
+    user,
+    documents,
+    isLoading,
+    isError,
+    addDocument,
+    changeDocumentName,
+    removeDocument,
+    removeAccount,
+  } = useMyPage();
+
+  const supportDocuments: SupportDocument[] = documents.map(
+    (document) => ({
+      id: document.docId,
+      name: document.fileName,
+      meta: `PDF · ${new Date(document.createdAt).toLocaleDateString("ko-KR")}`,
+    }),
+  );
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (
+  const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
@@ -33,50 +51,87 @@ export default function MyPage() {
       return;
     }
 
-    const fileName = file.name.replace(/\.pdf$/i, "");
-
-    const today = new Intl.DateTimeFormat("ko-KR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
-
-    const newDocument: SupportDocument = {
-      id: Date.now(),
-      name: fileName,
-      meta: `PDF · ${today}`,
-    };
-
-    setDocuments((currentDocuments) => [
-      ...currentDocuments,
-      newDocument,
-    ]);
-
-    event.target.value = "";
+    try {
+      await addDocument(file);
+    } catch (error) {
+      console.error("서류 업로드 실패:", error);
+      window.alert("서류 업로드에 실패했습니다.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
-  const handleRename = (id: number, name: string) => {
-    setDocuments((currentDocuments) =>
-      currentDocuments.map((document) =>
-        document.id === id
-          ? {
-              ...document,
-              name,
-            }
-          : document,
-      ),
-    );
+  const handleRename = async (id: number, name: string) => {
+    try {
+      await changeDocumentName(id, name);
+    } catch (error) {
+      console.error("서류 이름 변경 실패:", error);
+      window.alert("서류 이름 변경에 실패했습니다.");
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setDocuments((currentDocuments) =>
-      currentDocuments.filter((document) => document.id !== id),
-    );
+  const handleDelete = async (id: number) => {
+    try {
+      await removeDocument(id);
+    } catch (error) {
+      console.error("서류 삭제 실패:", error);
+      window.alert("서류 삭제에 실패했습니다.");
+    }
   };
 
   const handleLogout = () => {
-    window.alert("로그아웃 기능은 API 연결 후 동작하도록 구현할 예정입니다.");
+    window.alert("로그아웃 API는 인증 연동 후 연결할 예정입니다.");
   };
+
+  const handleWithdraw = async () => {
+    const confirmed = window.confirm(
+      "회원 탈퇴를 진행하시겠습니까?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await removeAccount();
+
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+
+      window.location.href = "/";
+    } catch (error) {
+      console.error("회원 탈퇴 실패:", error);
+      window.alert("회원 탈퇴에 실패했습니다.");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+
+        <main className="mx-auto w-full max-w-[760px] px-6 py-14 md:px-8 md:py-20">
+          <p className="text-[14px] text-muted-foreground">
+            마이페이지 정보를 불러오는 중입니다.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+
+        <main className="mx-auto w-full max-w-[760px] px-6 py-14 md:px-8 md:py-20">
+          <p className="text-[14px] text-muted-foreground">
+            마이페이지 정보를 불러오지 못했습니다.
+          </p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -93,13 +148,15 @@ export default function MyPage() {
           </h1>
 
           <p className="mt-2 text-[14px] leading-6 text-muted-foreground">
-            지원 서류와 계정 정보를 관리할 수 있어요.
+            {user?.nickname
+              ? `${user.nickname}님의 지원 서류와 계정 정보를 관리할 수 있어요.`
+              : "지원 서류와 계정 정보를 관리할 수 있어요."}
           </p>
         </div>
 
         <div className="mt-12">
           <DocumentList
-            documents={documents}
+            documents={supportDocuments}
             onRename={handleRename}
             onDelete={handleDelete}
             onUpload={handleUploadClick}
@@ -108,7 +165,10 @@ export default function MyPage() {
 
         <div className="my-12 h-px bg-border" />
 
-        <AccountSection onLogout={handleLogout} />
+        <AccountSection
+          onLogout={handleLogout}
+          onWithdraw={handleWithdraw}
+        />
 
         <input
           ref={fileInputRef}

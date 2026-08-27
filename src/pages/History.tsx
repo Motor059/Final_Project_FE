@@ -3,43 +3,91 @@ import HistoryList, {
   type InterviewHistoryItem,
 } from "@/components/history/HistoryList";
 import HistorySummary from "@/components/history/HistorySummary";
+import useHistory from "@/hooks/useHistory";
 
-const HISTORY_ITEMS: InterviewHistoryItem[] = [
-  {
-    id: 1,
-    date: "2026.08.10",
-    company: "카카오",
-    role: "백엔드",
-    stage: "1차 기술 면접",
-    score: 78,
-  },
-  {
-    id: 2,
-    date: "2026.08.06",
-    company: "네이버",
-    role: "백엔드",
-    stage: "1차 기술 면접",
-    score: 82,
-  },
-  {
-    id: 3,
-    date: "2026.08.02",
-    company: "토스",
-    role: "서버 개발자",
-    stage: "2차 인성·임원 면접",
-    score: 74,
-  },
-];
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+
+  return date
+    .toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+    .replace(/\. /g, ".")
+    .replace(/\.$/, "");
+};
+
+const formatCompanyType = (companyType: string) => {
+  switch (companyType) {
+    case "BIG_TECH_SW":
+      return "대기업 SW";
+    case "SERVICE":
+      return "서비스 기업";
+    case "FINANCE_IT":
+      return "금융 IT";
+    default:
+      return companyType;
+  }
+};
+
+const formatInterviewStage = (interviewStage: string) => {
+  switch (interviewStage) {
+    case "TECHNICAL":
+      return "기술 면접";
+    case "PERSONALITY":
+      return "인성·임원 면접";
+    default:
+      return interviewStage;
+  }
+};
 
 export default function History() {
-  const totalSessions = HISTORY_ITEMS.length;
-  const weekSessions = 2;
+  const { history, isLoading, isError } = useHistory();
+
+  const historyItems: InterviewHistoryItem[] =
+    history?.sessions.map((session) => ({
+      id: session.sessionId,
+      date: formatDate(session.createdAt),
+      company: session.companyName ?? formatCompanyType(session.companyType),
+      role: session.jobRole ?? "직무 미지정",
+      stage: formatInterviewStage(session.interviewStage),
+    })) ?? [];
 
   const handleSelectHistory = (id: number) => {
     window.alert(
-      `면접 기록 ${id}번 상세 페이지는 API 및 결과 페이지 연결 후 구현할 예정입니다.`,
+      `면접 기록 ${id}번 상세 페이지는 결과 페이지 연결 후 구현할 예정입니다.`,
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="mx-auto w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
+          <p className="text-[14px] text-muted-foreground">
+            면접 기록을 불러오는 중입니다.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="mx-auto w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
+          <p className="text-[14px] text-muted-foreground">
+            면접 기록을 불러오지 못했습니다.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  const totalSessions = history?.totalCount ?? 0;
+  const weekSessions = history?.weekCount ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,7 +118,7 @@ export default function History() {
 
         <div className="mt-10">
           <HistoryList
-            items={HISTORY_ITEMS}
+            items={historyItems}
             onSelect={handleSelectHistory}
           />
         </div>
