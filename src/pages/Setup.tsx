@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/common/Header";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import useSetup from "@/hooks/useSetup";
+import { uploadDocument } from "@/api/documentApi";
 
 import type {
   CompanyType,
@@ -52,12 +53,20 @@ export default function Setup() {
     }
 
     try {
+      let docId: number | undefined;
+
+      if (documentFile) {
+        const uploadedDocument = await uploadDocument(documentFile);
+        docId = uploadedDocument.docId;
+      }
+
       const sessionId = await startInterview({
         companyType,
         interviewStage,
         companyName: companyName.trim() || undefined,
         jobRole: jobRole.trim() || undefined,
         jobDescription: jobDescription.trim() || undefined,
+        docId,
       });
 
       resetInterview();
