@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { reportApi } from '@/api/reportApi';
 import type { ReportResponseData } from '@/types/report';
 
-export const useReportPolling = (sessionId: number | undefined | null) => {
+export const useReportPolling = (sessionId: number | undefined | null, isFromHistory: boolean | undefined) => {
   const [data, setData] = useState<ReportResponseData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +71,11 @@ export const useReportPolling = (sessionId: number | undefined | null) => {
 
     // 최초 채점 시작 요청
     const startProcess = async () => {
+      if (isFromHistory) {
+        fetchFinalReport(sessionId);
+        return;
+      }
+      
       try {
         setIsLoading(true);
         await reportApi.requestFeedback(sessionId);
@@ -91,7 +96,7 @@ export const useReportPolling = (sessionId: number | undefined | null) => {
       isMounted = false;
       stopPolling();
     };
-  }, [sessionId]);
+  }, [sessionId, isFromHistory]);
 
   return { data, isLoading, error };
 };

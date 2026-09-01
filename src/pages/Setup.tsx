@@ -24,6 +24,8 @@ export default function Setup() {
     startInterview,
   } = useSetup();
 
+  console.log("들어온 옵션 데이터:", options);
+
   const [companyType, setCompanyType] = useState<CompanyType | null>(null);
   const [interviewStage, setInterviewStage] = useState<InterviewStage | null>(null);
 
@@ -58,6 +60,8 @@ export default function Setup() {
         jobDescription: jobDescription.trim() || undefined,
       });
 
+      resetInterview();
+
       sessionStorage.setItem(
         "interviewSetup",
         JSON.stringify({
@@ -73,9 +77,7 @@ export default function Setup() {
 
       sessionStorage.setItem("interviewSessionId", String(sessionId));
 
-      // 라우팅 직전 이전 면접 상태 초기화 (PR 반영 내역)
-      resetInterview();
-      navigate("/interview");
+      navigate("/interview", { state: { sessionId } });
     } catch (error) {
       console.error("모의면접 시작 실패:", error);
       window.alert("면접 준비 중 문제가 발생했습니다.");
@@ -141,7 +143,7 @@ export default function Setup() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                {options.companyTypes.map((item) => (
+                {options.companyTypes?.map((item) => (
                   <SelectionCard
                     key={item.code}
                     title={item.label}
@@ -164,7 +166,7 @@ export default function Setup() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                {options.stages.map((item) => (
+                {options.stages?.map((item) => (
                   <SelectionCard
                     key={item.code}
                     title={item.label}

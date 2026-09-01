@@ -1,4 +1,4 @@
-import { axiosInstance } from "./axiosInstance";
+import { api } from '@/api/axios';
 
 import type {
   CreateSessionData,
@@ -10,32 +10,32 @@ import type {
 export const getInterviewOptions =
   async (): Promise<InterviewOptionsData> => {
     const response =
-      await axiosInstance.get<InterviewOptionsData>(
+      await api.get(
         "/api/v1/interview-options",
       );
 
-    return response.data;
+    return response.data.data;
   };
 
 export const createSession = async (
   request: CreateSessionRequest,
 ): Promise<CreateSessionData> => {
   const response =
-    await axiosInstance.post<CreateSessionData>(
+    await api.post(
       "/api/v1/sessions",
       request,
     );
 
-  return response.data;
+  return response.data.data;
 };
 
 export const getGenerationStatus = async (
   sessionId: number,
 ): Promise<GenerationStatusData> => {
   const response =
-    await axiosInstance.get<GenerationStatusData>(
+    await api.get(
       `/api/v1/sessions/${sessionId}/generation-status`,
     );
 
-  return response.data;
+  return response.data.data;
 };

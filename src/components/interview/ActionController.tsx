@@ -29,7 +29,7 @@ export default function ActionController() {
   if (phase !== "RECORDING") return <div className="h-[200px]" />; 
 
   return (
-    <div className="w-full max-w-3xl flex flex-col items-center space-y-8 animate-knock-fade">
+    <div className="w-full max-w-3xl flex flex-col items-center space-y-8 animate-Devoir-fade">
       
       {/* 파형(또는 텍스트 입력창) 및 상태 텍스트 영역 */}
       <div className="flex flex-col items-center space-y-4 w-full min-h-[90px]">

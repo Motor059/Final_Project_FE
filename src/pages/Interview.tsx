@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import InterviewHeader from "@/components/interview/InterviewHeader";
@@ -7,12 +7,14 @@ import ActionController from "@/components/interview/ActionController";
 import { useInterviewTimer } from "@/hooks/useInterviewTimer";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import Header from "@/components/common/Header";
+import { ChevronLeft } from "lucide-react";
 
 export default function Interview() {
   const navigate = useNavigate();
   const location = useLocation();
   const { phase, startAndFetchFirstQuestion, cancelCurrentSession, isFinished } = useInterviewStore();
-  
+  const isStartRequested = useRef(false);
+
   useInterviewTimer();
   useSpeechRecognition();
 
@@ -24,6 +26,8 @@ export default function Interview() {
       navigate('/setup', { replace: true });
       return;
     }
+    if (isStartRequested.current) return;
+    isStartRequested.current = true;
     startAndFetchFirstQuestion(sessionId);
   }, [location.state, navigate, startAndFetchFirstQuestion]);
 
@@ -31,7 +35,6 @@ export default function Interview() {
   useEffect(() => {
     if (isFinished) {
       const sessionId = location.state?.sessionId;
-      // 리포트 페이지에서 채점 요청을 보낼 수 있도록 sessionId 전달
       navigate('/report', { replace: true, state: { sessionId } }); 
     }
   }, [isFinished, navigate, location.state]);
@@ -45,15 +48,16 @@ export default function Interview() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center pt-[68px]">
-      <div className="fixed top-0 left-0 z-50 w-full flex flex-col bg-white/80 backdrop-blur-md">
-        <Header />        
-        <header className="relative w-full h-[60px] border-b border-border flex items-center justify-center px-6 md:px-10">
+    <div className="min-h-screen bg-white flex flex-col items-center pt-[128px]">
+      <Header />        
+      <div className="fixed top-[68px] left-0 z-50 w-full flex flex-col bg-white/80 backdrop-blur-md">
+        <header className="relative w-full h-[60px] flex items-center justify-center px-6 md:px-10">
           <button 
             onClick={handleGoBack}
-            className="absolute left-6 md:left-10 z-20 text-xl font-bold hover:opacity-70 p-2 text-gray-700"
+            className="absolute left-[20px] md:left-[40px] z-20 p-[4px] -ml-[4px] text-[#0A0A0A] hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
+            aria-label="뒤로 가기"
           >
-            〈
+            <ChevronLeft className="w-7 h-7" strokeWidth={2.5} />
           </button>
           {phase !== "PREPARING" && (
             <div className="w-full max-w-[840px] px-12 md:px-16">
@@ -62,7 +66,7 @@ export default function Interview() {
           )}
         </header>
       </div>
-
+      
       <main className="flex-1 w-full flex flex-col items-center justify-center p-6 mt-10">
         <QuestionOrb />
       </main>

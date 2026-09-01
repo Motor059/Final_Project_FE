@@ -27,11 +27,12 @@ export default function KakaoCallback() {
       localStorage.setItem('refreshToken', data.refreshToken);
 
       await fetchUserInfo();
-
       navigate('/home', { replace: true });
       
     } catch (error: any) {
-      if (error.response?.status === 400) {
+      console.error("로그인 실패 상세 원인:", error);
+      const backendCode = error.response?.data?.code || error.response?.status;
+      if (backendCode === 400) {
         setShowTerms(true);
       } 
       else {
@@ -43,8 +44,23 @@ export default function KakaoCallback() {
   useEffect(() => {
     if (!code || isProcessed.current) return;
     isProcessed.current = true;
-    processLogin(false);
+
+    const isPendingTerms = localStorage.getItem('pendingTerms') === 'true';
+
+    if (isPendingTerms) {
+      localStorage.removeItem('pendingTerms');
+      processLogin(true);
+    } else {
+      processLogin(false);
+    }
   }, [code]);
+
+  const handleAgreeAndRestart = () => {
+    localStorage.setItem('pendingTerms', 'true');
+    
+    const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${import.meta.env.VITE_KAKAO_CLIENT_ID}&redirect_uri=${import.meta.env.VITE_KAKAO_REDIRECT_URI}&response_type=code`;
+    window.location.href = KAKAO_AUTH_URL;
+  };
 
   if (errorMsg) {
     return (
@@ -69,7 +85,7 @@ export default function KakaoCallback() {
             서비스 이용을 위해<br/>약관 및 개인정보처리방침 동의가 필요합니다.
           </p>
           <button 
-            onClick={() => processLogin(true)} // 동의하고 다시 찌르기!
+            onClick={handleAgreeAndRestart}
             className="w-full py-4 bg-[#FEE500] text-[#1C1917] font-semibold rounded-xl hover:bg-[#F4DC00] transition-colors"
           >
             동의하고 시작하기

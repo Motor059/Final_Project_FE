@@ -11,7 +11,7 @@ export default function JobRoleChips({
 }: JobRoleChipsProps) {
   return (
     <div className="flex flex-wrap gap-2">
-      {options.map((role) => {
+      {options?.map((role) => {
         const selected = value === role;
 
         return (

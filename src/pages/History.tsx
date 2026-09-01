@@ -4,6 +4,7 @@ import HistoryList, {
 } from "@/components/history/HistoryList";
 import HistorySummary from "@/components/history/HistorySummary";
 import useHistory from "@/hooks/useHistory";
+import { useNavigate } from "react-router-dom";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -44,6 +45,7 @@ const formatInterviewStage = (interviewStage: string) => {
 
 export default function History() {
   const { history, isLoading, isError } = useHistory();
+  const navigate = useNavigate();
 
   const historyItems: InterviewHistoryItem[] =
     history?.sessions.map((session) => ({
@@ -52,19 +54,18 @@ export default function History() {
       company: session.companyName ?? formatCompanyType(session.companyType),
       role: session.jobRole ?? "직무 미지정",
       stage: formatInterviewStage(session.interviewStage),
+      score: session.totalScore,
     })) ?? [];
 
   const handleSelectHistory = (id: number) => {
-    window.alert(
-      `면접 기록 ${id}번 상세 페이지는 결과 페이지 연결 후 구현할 예정입니다.`,
-    );
+    navigate('/report', { state: { sessionId: id, isFromHistory: true } });
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="mx-auto w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
+        <main className="mx-auto top-[68px] w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
           <p className="text-[14px] text-muted-foreground">
             면접 기록을 불러오는 중입니다.
           </p>
@@ -77,7 +78,7 @@ export default function History() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="mx-auto w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
+        <main className="mx-auto top-[68px] w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
           <p className="text-[14px] text-muted-foreground">
             면접 기록을 불러오지 못했습니다.
           </p>
@@ -90,7 +91,7 @@ export default function History() {
   const weekSessions = history?.weekCount ?? 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[68px]">
       <Header />
 
       <main className="mx-auto w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
