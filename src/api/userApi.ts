@@ -1,25 +1,24 @@
-// src/api/userApi.ts
-import { axiosInstance } from './axiosInstance';
+import { api } from '@/api/axios';
 import type { UserResponse } from '@/types/user';
 
 export const getMyInfo = async (): Promise<UserResponse> => {
-  const response = await axiosInstance.get<UserResponse>('/api/v1/users/me');
-  return response.data;
+  const response = await api.get('/api/v1/users/me');
+  return response.data.data;
 };
 
 export const updateNickname = async (
   nickname: string,
 ): Promise<UserResponse> => {
-  const response = await axiosInstance.patch<UserResponse>(
+  const response = await api.patch(
     "/api/v1/users/me",
     {
       nickname,
     },
   );
 
-  return response.data;
+  return response.data.data;
 };
 
 export const deleteMyAccount = async (): Promise<void> => {
-  await axiosInstance.delete("/api/v1/users/me");
+  await api.delete("/api/v1/users/me");
 };

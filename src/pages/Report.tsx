@@ -14,7 +14,9 @@ export default function ReportPage() {
   const navigate = useNavigate();
   
   const sessionId = location.state?.sessionId;
-  const { data, isLoading, error } = useReportPolling(sessionId);
+  const isFromHistory = location.state?.isFromHistory;
+
+  const { data, isLoading, error } = useReportPolling(sessionId, isFromHistory);
 
   useEffect(() => {
     if (!sessionId) {

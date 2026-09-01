@@ -3,7 +3,7 @@ import { useInterviewStore } from "@/store/useInterviewStore";
 import { OrbEngine, type OrbState } from "@/lib/OrbEngine";
 
 export default function QuestionOrb() {
-  const { phase, currentQuestion } = useInterviewStore();
+  const { phase, currentQuestion, setPhase } = useInterviewStore();
   const [displayedText, setDisplayedText] = useState("");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -24,6 +24,9 @@ export default function QuestionOrb() {
           currentIndex++;
         } else {
           clearInterval(typingInterval);
+          setTimeout(() => {
+            setPhase("RECORDING");
+          }, 500);
         }
       }, 60);
       
@@ -31,7 +34,7 @@ export default function QuestionOrb() {
     } else {
       setDisplayedText(currentQuestion.content);
     }
-  }, [currentQuestion?.content, phase]);
+  }, [currentQuestion?.content, phase, setPhase]);
 
   // OrbEngine 생성 (캔버스가 마운트된 직후 1회만 생성)
   useEffect(() => {
@@ -65,7 +68,7 @@ export default function QuestionOrb() {
 
   if (phase === "PREPARING") {
     return (
-      <div className="flex flex-col items-center justify-center w-full mt-16 animate-knock-fade">
+      <div className="flex flex-col items-center justify-center w-full mt-16 animate-Devoir-fade">
         <div className="w-[44px] h-[44px] border-[3px] border-[#F5F5F4] border-t-[#1C1917] rounded-full animate-spin mb-10" />
         <h2 className="text-[26px] font-bold text-[#1C1917] mb-3 tracking-tight">
           면접관이 질문을 준비하고 있어요...
@@ -78,7 +81,7 @@ export default function QuestionOrb() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-3xl space-y-12 animate-knock-fade">
+    <div className="flex flex-col items-center justify-center w-full max-w-3xl space-y-12 animate-Devoir-fade">
       
       {/* 160x160 오로라 구슬 영역 */}
       <div className="relative flex items-center justify-center w-[160px] h-[160px]">

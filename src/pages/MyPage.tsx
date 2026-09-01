@@ -21,7 +21,7 @@ export default function MyPage() {
     removeAccount,
   } = useMyPage();
 
-  const supportDocuments: SupportDocument[] = documents.map(
+  const supportDocuments: SupportDocument[] = (documents || []).map(
     (document) => ({
       id: document.docId,
       name: document.fileName,
@@ -80,7 +80,14 @@ export default function MyPage() {
   };
 
   const handleLogout = () => {
-    window.alert("로그아웃 API는 인증 연동 후 연결할 예정입니다.");
+    const confirmed = window.confirm("로그아웃 하시겠습니까?");
+    
+    if (!confirmed) {
+      return;
+    }
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    window.location.href = "/home";
   };
 
   const handleWithdraw = async () => {
@@ -98,7 +105,7 @@ export default function MyPage() {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
 
-      window.location.href = "/";
+      window.location.href = "/home";
     } catch (error) {
       console.error("회원 탈퇴 실패:", error);
       window.alert("회원 탈퇴에 실패했습니다.");
@@ -134,7 +141,7 @@ export default function MyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[68px]">
       <Header />
 
       <main className="mx-auto w-full max-w-[760px] px-6 py-14 md:px-8 md:py-20">

@@ -22,6 +22,7 @@ export interface SessionItem {
   jobRole: string | null;
   status: SessionStatus;
   createdAt: string;
+  totalScore?: number;
 }
 
 export interface HistoryResponse {

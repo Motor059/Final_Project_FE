@@ -8,7 +8,7 @@ export default function FeatureSection() {
   return (
     <section className="py-[70px] px-[40px]">
       <h2 className="text-[14px] font-semibold text-[#78716C] mb-[28px] tracking-[-0.01em]">
-        Knock로 이렇게 연습해요
+        Devoir로 이렇게 연습해요
       </h2>
       
       <div className="grid grid-cols-3 gap-[36px]">

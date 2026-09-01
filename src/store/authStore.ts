@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       let formattedSetting = null;
 
-      if (historyData.sessions.length > 0) {
+      if (historyData?.sessions?.length > 0) {
         const latest = historyData.sessions[0];
         
         const company = latest.companyName || formatCompanyType(latest.companyType); 
@@ -53,6 +53,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     } catch (error) {
       set({ isLoggedIn: false, user: null, lastSetting: null });
+      console.error("유저 정보 조회 실패:", error);
+      throw error;
     }
   },
 

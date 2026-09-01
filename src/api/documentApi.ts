@@ -1,4 +1,4 @@
-import { axiosInstance } from "./axiosInstance";
+import { api } from '@/api/axios';
 
 import type {
   DocumentItem,
@@ -8,9 +8,9 @@ import type {
 
 export const getDocuments = async (): Promise<DocumentListResponse> => {
   const response =
-    await axiosInstance.get<DocumentListResponse>("/api/v1/documents");
+    await api.get("/api/v1/documents");
 
-  return response.data;
+  return response.data.data;
 };
 
 export const uploadDocument = async (
@@ -19,30 +19,30 @@ export const uploadDocument = async (
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await axiosInstance.post<DocumentItem>(
+  const response = await api.post(
     "/api/v1/documents",
     formData,
   );
 
-  return response.data;
+  return response.data.data;
 };
 
 export const renameDocument = async (
   docId: number,
   fileName: string,
 ): Promise<DocumentRenameResponse> => {
-  const response = await axiosInstance.patch<DocumentRenameResponse>(
+  const response = await api.patch(
     `/api/v1/documents/${docId}`,
     {
       fileName,
     },
   );
 
-  return response.data;
+  return response.data.data;
 };
 
 export const deleteDocument = async (
   docId: number,
 ): Promise<void> => {
-  await axiosInstance.delete(`/api/v1/documents/${docId}`);
+  await api.delete(`/api/v1/documents/${docId}`);
 };

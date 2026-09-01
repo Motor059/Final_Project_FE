@@ -1,4 +1,4 @@
-import { api } from './axios';
+import { api } from '@/api/axios';
 import type { ApiResponse, StartScoringData, PollingStatusData } from './api';
 import type { ReportResponseData } from '../types/report'; 
 

@@ -93,13 +93,14 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
 
   // 텍스트 답변 제출 및 nextAction 처리
   submitTextAnswerAndNext: async () => {
-    const { currentQuestion, answerText } = get();
-    if (!currentQuestion || !answerText.trim()) return;
+    const { currentQuestion, answerText, sessionId } = get();
+    
+    if (!sessionId || !currentQuestion || !answerText.trim()) return;
 
     set({ phase: 'THINKING' });
 
     try {
-      const result = await interviewApi.submitTextAnswer(currentQuestion.questionId, answerText);
+      const result = await interviewApi.submitTextAnswer(sessionId, currentQuestion.questionId, answerText);
       const { type, message } = result.nextAction;
 
       if (type === 'FINISH') {

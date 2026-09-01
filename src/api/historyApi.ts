@@ -1,10 +1,10 @@
-import { axiosInstance } from './axiosInstance';
+import { api } from '@/api/axios';
 import type { HistoryResponse } from '@/types/history';
 
 export const getHistoryList = async (): Promise<HistoryResponse> => {
-  const response = await axiosInstance.get<HistoryResponse>(
+  const response = await api.get(
     '/api/v1/users/me/sessions'
   );
 
-  return response.data;
+  return response.data.data;
 };

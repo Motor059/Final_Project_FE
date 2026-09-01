@@ -25,16 +25,24 @@ export default function Header() {
           className="text-2xl font-bold tracking-tighter cursor-pointer flex items-baseline"
           onClick={() => navigate('/home')} 
         >
-          Knock<span className="inline-block w-[5px] h-[5px] bg-[#0A0A0A] rounded-full ml-[1px] mb-[3px]"></span>
+          Devoir<span className="inline-block w-[5px] h-[5px] bg-[#0A0A0A] rounded-full ml-[1px] mb-[3px]"></span>
         </div>
         
         {isLoggedIn ? (
-          <div 
-            onClick={() => navigate('/mypage')}
-            title="마이페이지"
-            className="w-[36px] h-[36px] rounded-full bg-[#0A0A0A] text-white flex items-center justify-center text-[14px] font-semibold cursor-pointer shadow-sm hover:scale-105 transition-transform"
-          >
-            {user?.nickname ? user.nickname.charAt(0) : '유'}
+          <div className="flex items-center gap-4"> 
+            <button
+              onClick={() => navigate('/history')}
+              className="text-[14px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              히스토리
+            </button>
+            <div 
+              onClick={() => navigate('/mypage')}
+              title="마이페이지"
+              className="w-[36px] h-[36px] rounded-full bg-[#0A0A0A] text-white flex items-center justify-center text-[14px] font-semibold cursor-pointer shadow-sm hover:scale-105 transition-transform"
+            >
+              {user?.nickname ? user.nickname.charAt(0) : '유'}
+            </div>
           </div>
         ) : (
           <Button 

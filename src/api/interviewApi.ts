@@ -1,4 +1,4 @@
-import { api } from './axios';
+import { api } from '@/api/axios';
 import type { ApiResponse, SessionData, CurrentQuestionData, AnswerSubmitData, SkipTopicData,StartInterviewData, AnalyzeSessionData } from './api';
 
 export const interviewApi = {
@@ -35,8 +35,8 @@ export const interviewApi = {
   },
 
   // 텍스트 답변 제출 API
-  submitTextAnswer: async (questionId: number, transcript: string): Promise<AnswerSubmitData> => {
-    const response = await api.post<ApiResponse<AnswerSubmitData>>('/api/v1/answers/text', {
+  submitTextAnswer: async (sessionId: number, questionId: number, transcript: string): Promise<AnswerSubmitData> => {
+    const response = await api.post<ApiResponse<AnswerSubmitData>>(`/api/v1/sessions/${sessionId}/answers/text`, {
       questionId,
       transcript,
     });

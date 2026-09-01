@@ -48,10 +48,15 @@ export default function HeroSection({ isLoggedIn, userName, lastSetting }: HeroS
             모의면접 시작
           </button>
           
-          {isLoggedIn && lastSetting ? (
-             <button className="text-[15px] font-semibold text-[#1C1917] bg-white border border-[#E0DEDA] px-[28px] py-[15px] rounded-[13px] inline-flex items-center gap-[9px]">
-               마지막 설정으로 시작 · <span className="text-gray-500">{lastSetting}</span>
-             </button>
+          {/* 유저 상태에 따른 3가지 분기 처리 */}
+          {isLoggedIn ? (
+            lastSetting ? (
+               <button className="text-[15px] font-semibold text-[#1C1917] bg-white border border-[#E0DEDA] px-[28px] py-[15px] rounded-[13px] inline-flex items-center gap-[9px]">
+                 마지막 설정으로 시작 · <span className="text-gray-500">{lastSetting}</span>
+               </button>
+            ) : (
+              <span className="text-[14px] text-[#A8A29E]">첫 모의면접 설정을 시작해 보세요!</span>
+            )
           ) : (
             <span className="text-[14px] text-[#A8A29E]">로그인 없이 바로 체험할 수 있어요</span>
           )}
