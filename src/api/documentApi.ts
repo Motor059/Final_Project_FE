@@ -2,11 +2,10 @@ import { api } from '@/api/axios';
 
 import type {
   DocumentItem,
-  DocumentListResponse,
   DocumentRenameResponse,
 } from "@/types/document";
 
-export const getDocuments = async (): Promise<DocumentListResponse> => {
+export const getDocuments = async (): Promise<DocumentItem[]> => {
   const response =
     await api.get("/api/v1/documents");
 
