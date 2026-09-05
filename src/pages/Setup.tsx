@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/common/Header";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import useSetup from "@/hooks/useSetup";
-import { uploadDocument } from "@/api/documentApi";
 
 import type {
   CompanyType,
@@ -24,8 +23,6 @@ export default function Setup() {
     isError,
     startInterview,
   } = useSetup();
-
-  console.log("들어온 옵션 데이터:", options);
 
   const [companyType, setCompanyType] = useState<CompanyType | null>(null);
   const [interviewStage, setInterviewStage] = useState<InterviewStage | null>(null);
@@ -53,21 +50,16 @@ export default function Setup() {
     }
 
     try {
-      let docId: number | undefined;
-
-      if (documentFile) {
-        const uploadedDocument = await uploadDocument(documentFile);
-        docId = uploadedDocument.docId;
-      }
-
-      const sessionId = await startInterview({
-        companyType,
-        interviewStage,
-        companyName: companyName.trim() || undefined,
-        jobRole: jobRole.trim() || undefined,
-        jobDescription: jobDescription.trim() || undefined,
-        docId,
-      });
+      const sessionId = await startInterview(
+        {
+          companyType,
+          interviewStage,
+          companyName: companyName.trim() || undefined,
+          jobRole: jobRole.trim() || undefined,
+          jobDescription: jobDescription.trim() || undefined,
+        },
+        documentFile,
+      );
 
       resetInterview();
 

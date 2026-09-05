@@ -33,7 +33,7 @@ export default function useMyPage() {
         ]);
 
         setUser(userData);
-        setDocuments(documentData.documents);
+        setDocuments(documentData);
       } catch (error) {
         console.error("마이페이지 조회 실패:", error);
         setIsError(true);

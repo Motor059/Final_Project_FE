@@ -6,9 +6,11 @@ import DocumentList, {
   type SupportDocument,
 } from "@/components/mypage/DocumentList";
 import useMyPage from "@/hooks/useMyPage";
+import { useAuthStore } from "@/store/authStore";
 
 export default function MyPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logout = useAuthStore((state) => state.logout);
 
   const {
     user,
@@ -79,15 +81,14 @@ export default function MyPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     const confirmed = window.confirm("로그아웃 하시겠습니까?");
-    
+
     if (!confirmed) {
       return;
     }
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    window.location.href = "/home";
+
+    await logout();
   };
 
   const handleWithdraw = async () => {

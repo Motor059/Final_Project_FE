@@ -6,6 +6,8 @@ import {
   getInterviewOptions,
 } from "@/api/setupApi";
 
+import { uploadDocument } from "@/api/documentApi";
+
 import type {
   CreateSessionRequest,
   InterviewOptionsData,
@@ -67,12 +69,23 @@ export default function useSetup() {
 
   const startInterview = async (
     request: CreateSessionRequest,
+    documentFile?: File | null,
   ): Promise<number> => {
     try {
       setIsStarting(true);
       setIsError(false);
 
-      const session = await createSession(request);
+      let docId = request.docId;
+
+      if (documentFile) {
+        const uploadedDocument = await uploadDocument(documentFile);
+        docId = uploadedDocument.docId;
+      }
+
+      const session = await createSession({
+        ...request,
+        docId,
+      });
 
       await waitUntilReady(session.sessionId);
 
