@@ -20,7 +20,7 @@ export const uploadDocument = async (
 
   const response = await api.post(
     "/api/v1/documents",
-    formData,
+    formData
   );
 
   return response.data.data;

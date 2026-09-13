@@ -1,14 +1,23 @@
 import { useInterviewStore } from "@/store/useInterviewStore";
 import { Badge } from "@/components/ui/badge";
+import { useEffect } from "react"; // ✨ 추가
 
 export default function InterviewHeader() {
-  const { currentQuestion } = useInterviewStore();
+  const { currentQuestion, currentMainIndex } = useInterviewStore();
   
-  const currentMainIndex = currentQuestion?.mainProgress?.current || 1;
-  const totalMains = currentQuestion?.mainProgress?.total || 5;
-  const isFollowUp = currentQuestion?.type === "FOLLOW_UP";
-  const label = currentQuestion?.label || "질문 진행 중";
-  const followUpType = currentQuestion?.followUpType || "";
+  const totalMains = 5;
+  const rawType = String((currentQuestion as any)?.type || "MAIN").trim().toUpperCase();
+  const isFollowUp = rawType === "FOLLOW_UP" || rawType === "SUB" || rawType === "TAIL";   
+  const badgeLabel = isFollowUp ? "Deep Dive" : "메인 질문";
+  const subLabel = isFollowUp ? "What-if" : "";
+
+  useEffect(() => {
+    if (currentQuestion) {
+      console.log("[디버깅] 현재 질문 타입(type):", rawType);
+      console.log("[디버깅] 현재 질문 순서(seq):", (currentQuestion as any)?.seq);
+      console.log("[디버깅] 질문 내용:", (currentQuestion as any)?.content);
+    }
+  }, [currentQuestion, rawType]);
 
   return (
     <div className="w-full flex flex-col gap-2.5">
@@ -16,16 +25,16 @@ export default function InterviewHeader() {
         <div className="flex items-center gap-2.5">
           <Badge 
             variant="default" 
-            className={`rounded-md px-2.5 py-0.5 text-xs font-semibold ${
-              isFollowUp ? "bg-[#57534E] text-white" : "bg-black text-white"
+            className={`rounded-md px-2.5 py-0.5 text-[12px] font-semibold tracking-wide ${
+              isFollowUp ? "bg-[#57534E] text-white" : "bg-[#111111] text-white"
             }`}
           >
-            {label} 
+            {badgeLabel} 
           </Badge>
           
-          {followUpType && (
-            <span className="text-[13px] font-medium text-[#8A8A8E]">
-              {followUpType}
+          {isFollowUp && subLabel && (
+            <span className="text-[13px] font-medium text-[#A8A29E]">
+              {subLabel}
             </span>
           )}
         </div>
@@ -39,8 +48,8 @@ export default function InterviewHeader() {
         {Array.from({ length: totalMains }).map((_, idx) => (
           <div
             key={idx}
-            className={`h-[3px] flex-1 rounded-full transition-colors duration-300 ${
-              idx < currentMainIndex ? "bg-[#1C1917]" : "bg-[#F5F5F4]"
+            className={`h-[3px] flex-1 rounded-full transition-all duration-300 ${
+              idx < currentMainIndex ? "bg-[#111111]" : "bg-[#F5F5F4]"
             }`}
           />
         ))}

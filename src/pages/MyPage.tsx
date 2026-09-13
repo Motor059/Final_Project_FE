@@ -7,11 +7,12 @@ import DocumentList, {
 } from "@/components/mypage/DocumentList";
 import useMyPage from "@/hooks/useMyPage";
 import { useAuthStore } from "@/store/authStore";
+import { useAlertStore } from "@/store/useAlertStore";
 
 export default function MyPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logout = useAuthStore((state) => state.logout);
-
+  const { showAlert, showConfirm } = useAlertStore();
   const {
     user,
     documents,
@@ -48,7 +49,7 @@ export default function MyPage() {
       file.type !== "application/pdf" &&
       !file.name.toLowerCase().endsWith(".pdf")
     ) {
-      window.alert("PDF 파일만 업로드할 수 있어요.");
+      showAlert("PDF 파일만 업로드할 수 있어요.");
       event.target.value = "";
       return;
     }
@@ -57,7 +58,7 @@ export default function MyPage() {
       await addDocument(file);
     } catch (error) {
       console.error("서류 업로드 실패:", error);
-      window.alert("서류 업로드에 실패했습니다.");
+      showAlert("서류 업로드에 실패했습니다.");
     } finally {
       event.target.value = "";
     }
@@ -68,7 +69,7 @@ export default function MyPage() {
       await changeDocumentName(id, name);
     } catch (error) {
       console.error("서류 이름 변경 실패:", error);
-      window.alert("서류 이름 변경에 실패했습니다.");
+      showAlert("서류 이름 변경에 실패했습니다.");
     }
   };
 
@@ -77,40 +78,30 @@ export default function MyPage() {
       await removeDocument(id);
     } catch (error) {
       console.error("서류 삭제 실패:", error);
-      window.alert("서류 삭제에 실패했습니다.");
+      showAlert("서류 삭제에 실패했습니다.");
     }
   };
 
-  const handleLogout = async () => {
-    const confirmed = window.confirm("로그아웃 하시겠습니까?");
-
-    if (!confirmed) {
-      return;
-    }
-
-    await logout();
+  const handleLogout = () => {
+    showConfirm("로그아웃 하시겠습니까?", async () => {
+      await logout();
+    });
   };
 
-  const handleWithdraw = async () => {
-    const confirmed = window.confirm(
-      "회원 탈퇴를 진행하시겠습니까?",
-    );
+  const handleWithdraw = () => {
+    showConfirm("회원 탈퇴를 진행하시겠습니까?", async () => {
+      try {
+        await removeAccount();
 
-    if (!confirmed) {
-      return;
-    }
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
 
-    try {
-      await removeAccount();
-
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-
-      window.location.href = "/home";
-    } catch (error) {
-      console.error("회원 탈퇴 실패:", error);
-      window.alert("회원 탈퇴에 실패했습니다.");
-    }
+        window.location.href = "/home";
+      } catch (error) {
+        console.error("회원 탈퇴 실패:", error);
+        showAlert("회원 탈퇴에 실패했습니다.");
+      }
+    });
   };
 
   if (isLoading) {

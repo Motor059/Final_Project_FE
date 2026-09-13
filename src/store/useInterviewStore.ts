@@ -2,10 +2,13 @@ import { create } from 'zustand';
 import { interviewApi } from '@/api/interviewApi';
 import type { CurrentQuestionData } from '@/api/api';
 import { isAxiosError } from 'axios';
+import { useAlertStore } from '@/store/useAlertStore';
 
 interface InterviewState {
   sessionId: number | null;
   currentQuestion: CurrentQuestionData | null;
+
+  currentMainIndex: number;
   
   phase: 'PREPARING' | 'ASKING' | 'RECORDING' | 'THINKING'; 
   inputMode: 'AUDIO' | 'TEXT';                              
@@ -13,17 +16,27 @@ interface InterviewState {
   timeLeft: number;       
   isFinished: boolean;
 
+  audioBlob: Blob | null;
+
+  isExitModalOpen: boolean;
+  exitTargetPath: string;
+  
   setSessionId: (id: number) => void;
   setPhase: (phase: InterviewState['phase']) => void;
   setInputMode: (mode: InterviewState['inputMode']) => void;
   setAnswerText: (text: string) => void;
   setTimeLeft: (time: number | ((prev: number) => number)) => void;
+  setAudioBlob: (blob: Blob | null) => void;
+  
+  setExitModalOpen: (isOpen: boolean) => void;
+  setExitTargetPath: (path: string) => void;
+  
   resetInterview: () => void;
 
   startAndFetchFirstQuestion: (sessionId: number) => Promise<void>;
   fetchNextQuestion: () => Promise<void>;
   submitTextAnswerAndNext: () => Promise<void>;
-  submitAudioAnswerAndNext: (audioBlob: Blob, durationSeconds: number) => Promise<void>;
+  submitAudioAnswerAndNext: () => Promise<void>;
   skipToNextMain: () => Promise<void>;
   cancelCurrentSession: () => Promise<void>;
 }
@@ -36,6 +49,10 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
   answerText: '',
   timeLeft: 180,
   isFinished: false,
+  audioBlob: null,
+  currentMainIndex: 1,
+  isExitModalOpen: false,
+  exitTargetPath: '',
 
   setSessionId: (id) => set({ sessionId: id }),
   setPhase: (phase) => set({ phase }),
@@ -44,6 +61,10 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
   setTimeLeft: (time) => set((state) => ({ 
     timeLeft: typeof time === 'function' ? time(state.timeLeft) : time 
   })),
+  setAudioBlob: (blob) => set({ audioBlob: blob }),
+
+  setExitModalOpen: (isOpen) => set({ isExitModalOpen: isOpen }),
+  setExitTargetPath: (path) => set({ exitTargetPath: path }),
 
   resetInterview: () => set({
     sessionId: null,
@@ -52,15 +73,18 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
     inputMode: 'AUDIO',
     answerText: '',
     timeLeft: 180,
-    isFinished: false
+    isFinished: false,
+    audioBlob: null,
+    isExitModalOpen: false,
+    exitTargetPath: '',
+    currentMainIndex: 1,
   }),
 
   // 면접 시작 및 첫 질문 세팅
   startAndFetchFirstQuestion: async (sessionId: number) => {
-    set({ sessionId, phase: 'PREPARING' });
+    set({ sessionId, phase: 'PREPARING', currentMainIndex: 1 });
     try {
       await interviewApi.startSession(sessionId); 
-      
       await get().fetchNextQuestion();
     } catch (error) {
       console.error("면접 시작 에러:", error);
@@ -69,17 +93,21 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
 
   // 다음 질문 조회
   fetchNextQuestion: async () => {
-    const { sessionId } = get();
+    const { sessionId, currentMainIndex } = get();
     if (!sessionId) return;
 
     try {
       const questionData = await interviewApi.getCurrentQuestion(sessionId);
-      
+      const nextMainIndex = (questionData as any).type === 'MAIN' 
+                          ? (questionData as any).seq 
+                          : currentMainIndex;
       set({ 
         currentQuestion: questionData, 
         phase: 'ASKING', 
+        currentMainIndex: nextMainIndex,
         answerText: '',
-        timeLeft: 180 
+        timeLeft: 180,
+        audioBlob: null
       });
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 409) {
@@ -106,38 +134,56 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
       if (type === 'FINISH') {
         set({ isFinished: true });
       } else if (type === 'RETRY_INPUT') {
-        alert(message || "답변이 너무 짧습니다. 다시 입력해 주세요.");
+        useAlertStore.getState().showAlert(message || "답변이 너무 짧습니다. 다시 입력해 주세요.");
         set({ phase: 'RECORDING' });
       } else {
         await get().fetchNextQuestion();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("텍스트 답변 제출 에러:", error);
+      
+      const errorMessage = error?.response?.data?.message 
+                        || error?.message 
+                        || "답변 처리 중 문제가 발생했습니다. 다시 입력해 주세요.";
+      
+      useAlertStore.getState().showAlert(errorMessage);
+      
       set({ phase: 'RECORDING' }); 
     }
   },
 
   // 음성 답변 제출 및 nextAction 처리
-  submitAudioAnswerAndNext: async (audioBlob: Blob, durationSeconds: number) => {
-    const { currentQuestion } = get();
-    if (!currentQuestion) return;
+  submitAudioAnswerAndNext: async () => {
+    const { sessionId, currentQuestion, audioBlob, timeLeft } = get();
+    if (!sessionId || !currentQuestion || !audioBlob) return;
 
     set({ phase: 'THINKING' }); 
+    
+    const durationSeconds = Math.max(0, 180 - timeLeft);
 
     try {
-      const result = await interviewApi.submitAudioAnswer(currentQuestion.questionId, audioBlob, durationSeconds);
+      const result = await interviewApi.submitAudioAnswer(sessionId, currentQuestion.questionId, audioBlob, durationSeconds);
       const { type, message } = result.nextAction;
+
+      set({ audioBlob: null });
 
       if (type === 'FINISH') {
         set({ isFinished: true });
       } else if (type === 'RETRY_INPUT') {
-        alert(message || "음성이 잘 인식되지 않았습니다. 다시 녹음해 주세요.");
+        useAlertStore.getState().showAlert(message || "음성이 잘 인식되지 않았습니다. 다시 녹음해 주세요.");
         set({ phase: 'RECORDING' });
       } else {
         await get().fetchNextQuestion();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("음성 답변 제출 에러:", error);
+
+      const errorMessage = error?.response?.data?.message 
+                        || error?.message 
+                        || "음성 처리 중 문제가 발생했습니다. 다시 녹음해 주세요.";
+                        
+      useAlertStore.getState().showAlert(errorMessage);
+
       set({ phase: 'RECORDING' });
     }
   },
