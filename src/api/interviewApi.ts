@@ -15,13 +15,13 @@ export const interviewApi = {
   },
 
   // 음성 답변 제출 API
-  submitAudioAnswer: async (questionId: number, audioBlob: Blob, durationSeconds: number): Promise<AnswerSubmitData> => {
+  submitAudioAnswer: async (sessionId: number, questionId: number, audioBlob: Blob, durationSeconds: number): Promise<AnswerSubmitData> => {
     const formData = new FormData();
     formData.append('questionId', String(questionId));
-    formData.append('audioFile', audioBlob, `answer_${questionId}.webm`); 
+    formData.append('audio', audioBlob, `answer_${questionId}.webm`); 
     formData.append('durationSeconds', String(Math.floor(durationSeconds)));
 
-    const response = await api.post<ApiResponse<AnswerSubmitData>>('/api/v1/answers/audio', formData, {
+    const response = await api.post<ApiResponse<AnswerSubmitData>>(`/api/v1/sessions/${sessionId}/answers/audio`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data', 
       },

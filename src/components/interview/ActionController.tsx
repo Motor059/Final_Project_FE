@@ -8,7 +8,7 @@ export default function ActionController() {
     phase, inputMode, setInputMode, 
     answerText, setAnswerText, timeLeft, 
     submitTextAnswerAndNext, 
-    skipToNextMain 
+    skipToNextMain,
   } = useInterviewStore();
 
   const formatTime = (seconds: number) => {
@@ -22,7 +22,7 @@ export default function ActionController() {
     if (inputMode === "TEXT") {
       submitTextAnswerAndNext();
     } else {
-      alert("음성 답변 제출 로직은 아직 구현 중입니다. 텍스트로 전환하여 제출해주세요.");
+      window.dispatchEvent(new Event("request-stop-recording"));
     }
   };
 

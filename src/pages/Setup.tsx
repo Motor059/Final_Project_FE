@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import AdvancedSetting from "@/components/setup/AdvancedSetting";
 import SelectionCard from "@/components/setup/SelectionCard";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/common/Header";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import useSetup from "@/hooks/useSetup";
+import { useAlertStore } from "@/store/useAlertStore";
 
 import type {
   CompanyType,
@@ -14,7 +16,9 @@ import type {
 
 export default function Setup() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { resetInterview } = useInterviewStore();
+  const showAlert = useAlertStore((state) => state.showAlert);
 
   const {
     options,
@@ -31,6 +35,15 @@ export default function Setup() {
   const [companyName, setCompanyName] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    const retrySetup = location.state?.retrySetup;
+    if (retrySetup) {
+      setCompanyType(retrySetup.companyType || null);
+      setInterviewStage(retrySetup.interviewStage || null);
+      setCompanyName(retrySetup.companyName || "");
+      setJobRole(retrySetup.jobRole || "");    }
+  }, [location.state]);
 
   const canStart = useMemo(
     () =>
@@ -81,7 +94,7 @@ export default function Setup() {
       navigate("/interview", { state: { sessionId } });
     } catch (error) {
       console.error("모의면접 시작 실패:", error);
-      window.alert("면접 준비 중 문제가 발생했습니다.");
+      showAlert("면접 준비 중 문제가 발생했습니다.");
     }
   };
 
@@ -89,10 +102,11 @@ export default function Setup() {
     return (
       <>
         <Header />
-        <main className="min-h-screen bg-background">
-          <div className="mx-auto w-full max-w-[760px] px-5 py-12 sm:px-10 sm:py-14">
-            <p className="text-[14px] text-muted-foreground">
-              면접 설정을 불러오는 중입니다.
+        <main className="min-h-screen bg-background pt-[68px]">
+          <div className="mx-auto w-full max-w-[760px] flex flex-col items-center justify-center pt-32">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mb-4" />
+            <p className="text-[14px] font-medium text-muted-foreground">
+              면접 설정을 불러오는 중입니다
             </p>
           </div>
         </main>
@@ -118,7 +132,7 @@ export default function Setup() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-background pt-[68px]"> {/* Header 높이만큼 여백 추가 */}
+      <main className="min-h-screen bg-background pt-[68px]">
         <div className="mx-auto w-full max-w-[760px] px-5 pb-28 pt-12 sm:px-10 sm:pt-14">
           <header className="mb-11">
             <p className="mb-2.5 text-[13px] font-medium text-muted-foreground">
@@ -204,7 +218,14 @@ export default function Setup() {
               disabled={!canStart}
               className="h-12 w-full rounded-xl text-[15px] font-semibold"
             >
-              {isStarting ? "면접 준비 중..." : "모의면접 시작"}
+              {isStarting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  면접 준비 중...
+                </span>
+              ) : (
+                "모의면접 시작"
+              )}
             </Button>
 
             {!canStart && !isStarting && (

@@ -8,11 +8,12 @@ import { useInterviewTimer } from "@/hooks/useInterviewTimer";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import Header from "@/components/common/Header";
 import { ChevronLeft } from "lucide-react";
+import ExitConfirmModal from "@/components/interview/ExitConfirmModal";
 
 export default function Interview() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { phase, startAndFetchFirstQuestion, cancelCurrentSession, isFinished } = useInterviewStore();
+  const { phase, startAndFetchFirstQuestion, cancelCurrentSession, isFinished, setExitModalOpen, setExitTargetPath } = useInterviewStore();
   const isStartRequested = useRef(false);
 
   useInterviewTimer();
@@ -41,15 +42,14 @@ export default function Interview() {
 
   // 중도 포기(뒤로 가기) 핸들러
   const handleGoBack = async () => {
-    if (window.confirm("정말 면접을 중단하시겠습니까? 진행 내역은 저장되지 않습니다.")) {
-      await cancelCurrentSession();
-      navigate('/setup');
-    }
+    setExitTargetPath('/setup');
+    setExitModalOpen(true);
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center pt-[128px]">
-      <Header />        
+      <Header />   
+      <ExitConfirmModal />     
       <div className="fixed top-[68px] left-0 z-50 w-full flex flex-col bg-white/80 backdrop-blur-md">
         <header className="relative w-full h-[60px] flex items-center justify-center px-6 md:px-10">
           <button 

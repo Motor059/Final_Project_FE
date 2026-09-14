@@ -7,10 +7,12 @@ import Setup from "./pages/Setup";
 import ReportPage from "./pages/Report";
 import HomePage from "./pages/Home";
 import KakaoCallback from "./pages/KakaoCallback";
+import GlobalAlertModal from "@/components/common/GlobalAlertModal";
 
 export default function App() {
   return (
     <BrowserRouter>
+      <GlobalAlertModal />
       <Routes>
         <Route path="/home" element={<HomePage />} />
         <Route path="/" element={<StyleGuide />} />
