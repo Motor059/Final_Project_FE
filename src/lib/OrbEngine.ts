@@ -262,8 +262,8 @@ export class OrbEngine {
     this.gl.uniform1f(this.u.uOpacity, this.orbOpacity);
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
-    this.gl.enableVertexAttribArray(this.u.aPos!);
-    this.gl.vertexAttribPointer(this.u.aPos!, 3, this.gl.FLOAT, false, 0, 0);
+    this.gl.enableVertexAttribArray(this.u.aPos as number);
+    this.gl.vertexAttribPointer(this.u.aPos as number, 3, this.gl.FLOAT, false, 0, 0);
     this.gl.drawArrays(this.gl.POINTS, 0, this.N_PTS);
   };
 

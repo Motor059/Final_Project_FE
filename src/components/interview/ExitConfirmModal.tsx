@@ -15,7 +15,7 @@ export default function ExitConfirmModal() {
   const handleExit = async () => {
     await cancelCurrentSession();
     setExitModalOpen(false);
-    navigate(exitTargetPath || '/home');
+    navigate(exitTargetPath || '/');
   };
 
   return (

@@ -44,7 +44,7 @@ api.interceptors.response.use(
       if (!refreshToken) {
          console.warn("리프레시 토큰이 없습니다. 강제 로그아웃 됩니다.");
          localStorage.removeItem('accessToken');
-         window.location.href = '/home';
+         window.location.href = '/';
          return Promise.reject(error);
       }
 
@@ -67,7 +67,7 @@ api.interceptors.response.use(
         console.error("인증이 완전히 만료되었습니다. 다시 로그인해주세요.");
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/home';
+        window.location.href = '/';
         return Promise.reject(refreshError);
       }
     }

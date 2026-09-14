@@ -18,7 +18,6 @@ export default function Header() {
 
   const hideBackButton = 
     location.pathname === '/' || 
-    location.pathname === '/home' || 
     location.pathname === '/interview';
 
   useEffect(() => {
@@ -50,7 +49,7 @@ export default function Header() {
     setIsDropdownOpen(false);
     showConfirm("로그아웃 하시겠습니까?", async () => {
       await logout();
-      window.location.href = "/home";
+      window.location.href = "/";
     });
   };
 
@@ -59,7 +58,7 @@ export default function Header() {
       <header className="fixed top-0 left-0 right-0 z-50 w-full h-[68px] px-[20px] md:px-[40px] flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-[#F0EFED]">
         <div 
           className="text-2xl font-bold tracking-tighter cursor-pointer flex items-baseline"
-          onClick={() => handleNavigation('/home')} 
+          onClick={() => handleNavigation('/')} 
         >
           Devoir<span className="inline-block w-[5px] h-[5px] bg-[#0A0A0A] rounded-full ml-[1px] mb-[3px]"></span>
         </div>

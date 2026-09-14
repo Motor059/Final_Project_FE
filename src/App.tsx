@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route} from "react-router-dom";
-import StyleGuide from "./pages/StyleGuide";
 import Interview from "./pages/Interview";
 import History from "./pages/History";
 import MyPage from "./pages/MyPage";
@@ -14,8 +13,7 @@ export default function App() {
     <BrowserRouter>
       <GlobalAlertModal />
       <Routes>
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/" element={<StyleGuide />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/setup" element={<Setup />} />
         <Route path="/interview" element={<Interview />} />
         <Route path="/history" element={<History />} />

@@ -86,7 +86,7 @@ export default function AudioWaveform({ isRecording }: { isRecording: boolean })
       {[...Array(9)].map((_, i) => (
         <div
           key={i}
-          ref={(el) => (barsRef.current[i] = el)}
+          ref={(el) => { barsRef.current[i] = el; }}
           className="w-[6px] h-[6px] bg-[#333333] rounded-full transition-all duration-75 ease-out"
         />
       ))}

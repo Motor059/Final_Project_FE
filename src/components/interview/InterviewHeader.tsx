@@ -1,6 +1,6 @@
 import { useInterviewStore } from "@/store/useInterviewStore";
 import { Badge } from "@/components/ui/badge";
-import { useEffect } from "react"; // ✨ 추가
+import { useEffect } from "react";
 
 export default function InterviewHeader() {
   const { currentQuestion, currentMainIndex } = useInterviewStore();

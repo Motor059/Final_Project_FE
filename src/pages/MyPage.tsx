@@ -96,7 +96,7 @@ export default function MyPage() {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
 
-        window.location.href = "/home";
+        window.location.href = "/";
       } catch (error) {
         console.error("회원 탈퇴 실패:", error);
         showAlert("회원 탈퇴에 실패했습니다.");

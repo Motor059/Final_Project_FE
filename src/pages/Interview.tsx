@@ -13,7 +13,7 @@ import ExitConfirmModal from "@/components/interview/ExitConfirmModal";
 export default function Interview() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { phase, startAndFetchFirstQuestion, cancelCurrentSession, isFinished, setExitModalOpen, setExitTargetPath } = useInterviewStore();
+  const { phase, startAndFetchFirstQuestion, isFinished, setExitModalOpen, setExitTargetPath } = useInterviewStore();
   const isStartRequested = useRef(false);
 
   useInterviewTimer();

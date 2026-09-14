@@ -27,7 +27,7 @@ export default function KakaoCallback() {
       localStorage.setItem('refreshToken', data.refreshToken);
 
       await fetchUserInfo();
-      navigate('/home', { replace: true });
+      navigate('/', { replace: true });
       
     } catch (error: any) {
       console.error("로그인 실패 상세 원인:", error);
@@ -67,7 +67,7 @@ export default function KakaoCallback() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFAF9]">
         <h2 className="text-[20px] font-semibold text-[#1C1917] mb-4">{errorMsg}</h2>
         <button 
-          onClick={() => navigate('/home', { replace: true })}
+          onClick={() => navigate('/', { replace: true })}
           className="px-6 py-3 bg-[#0A0A0A] text-white rounded-xl font-medium"
         >
           홈으로 돌아가기
