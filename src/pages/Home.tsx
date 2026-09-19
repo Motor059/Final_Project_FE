@@ -19,7 +19,7 @@ export default function HomePage() {
   return (
     <>
       <Header />      
-      <main className="max-w-[1080px] mx-auto px-[40px] min-h-[calc(100vh-68px)] flex flex-col">
+      <main className="max-w-[1080px] pt-[48px] mx-auto px-[40px] min-h-[calc(100vh-68px)] flex flex-col">
         <HeroSection 
           isLoggedIn={isLoggedIn} 
           userName={user?.nickname} 
