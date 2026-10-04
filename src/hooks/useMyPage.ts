@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuthStore } from "@/store/authStore"; 
 
 import {
   deleteMyAccount,
@@ -20,6 +21,7 @@ export default function useMyPage() {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const updateNicknameInStore = useAuthStore((state) => state.updateNicknameInStore);
 
   useEffect(() => {
     const fetchMyPageData = async () => {
@@ -47,8 +49,14 @@ export default function useMyPage() {
 
   const changeNickname = async (nickname: string) => {
     await updateNickname(nickname);
+    
     setUser((prevUser) => 
-      prevUser ? { ...prevUser, nickname } : prevUser);
+      prevUser ? { ...prevUser, nickname } : prevUser
+    );
+
+    if (updateNicknameInStore) {
+      updateNicknameInStore(nickname);
+    }
   };
 
   const addDocument = async (file: File) => {
