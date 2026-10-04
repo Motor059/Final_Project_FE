@@ -23,11 +23,10 @@ const formatCompanyType = (type: string) => {
 };
 
 const initialLoginState = !!localStorage.getItem('accessToken');
-
 const cachedUserInfo = localStorage.getItem('userInfo');
 const initialUser = cachedUserInfo ? JSON.parse(cachedUserInfo) : null;
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   isLoggedIn: initialLoginState,
   user: initialUser,
   lastSetting: null,
@@ -69,12 +68,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   updateNicknameInStore: (nickname: string) => {
-    set((state) => {
-      if (!state.user) return state;
-      const updatedUser = { ...state.user, nickname };
-      localStorage.setItem('userInfo', JSON.stringify(updatedUser));
-      return { user: updatedUser };
-    });
+    const currentUser = get().user;
+    
+    if (!currentUser) return;
+
+    const updatedUser = { ...currentUser, nickname };
+    
+    localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+    
+    set({ user: updatedUser });
   },
 
   logout: async () => {
