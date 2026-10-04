@@ -70,21 +70,25 @@ export default function useSetup() {
   const startInterview = async (
     request: CreateSessionRequest,
     documentFile?: File | null,
+    selectedDocId?: number | null,
   ): Promise<number> => {
     try {
       setIsStarting(true);
       setIsError(false);
 
-      let docId = request.docId;
+      let finalDocId = request.docId;
 
       if (documentFile) {
         const uploadedDocument = await uploadDocument(documentFile);
-        docId = uploadedDocument.docId;
+        finalDocId = uploadedDocument.docId;
+      } 
+      else if (selectedDocId) {
+        finalDocId = selectedDocId;
       }
 
       const session = await createSession({
         ...request,
-        docId,
+        docId: finalDocId,
       });
 
       await waitUntilReady(session.sessionId);
