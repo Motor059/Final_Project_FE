@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, ChevronUp, FileText, Check } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +17,9 @@ interface AdvancedSettingProps {
   onCompanyNameChange: (value: string) => void;
   onJobDescriptionChange: (value: string) => void;
   onDocumentFileChange: (file: File | null) => void;
+  documents?: { docId: number; fileName: string; createdAt: string }[];
+  selectedDocId: number | null;
+  onSelectedDocIdChange: (id: number | null) => void;
 }
 
 export default function AdvancedSetting({
@@ -28,8 +32,28 @@ export default function AdvancedSetting({
   onCompanyNameChange,
   onJobDescriptionChange,
   onDocumentFileChange,
+  documents = [],
+  selectedDocId,
+  onSelectedDocIdChange,
 }: AdvancedSettingProps) {
   const [open, setOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleSelectSavedDocument = (docId: number) => {
+    onSelectedDocIdChange(docId);
+    onDocumentFileChange(null);
+    setIsDropdownOpen(false);
+  };
+
+  const handleNewFileChange = (file: File | null) => {
+    onDocumentFileChange(file);
+    if (file) {
+      onSelectedDocIdChange(null);
+      setIsDropdownOpen(false);
+    }
+  };
+
+  const selectedDocument = documents.find((doc) => doc.docId === selectedDocId);
 
   return (
     <section className="border-t border-border pt-6">
@@ -137,10 +161,89 @@ export default function AdvancedSetting({
                 </p>
               </div>
 
-              <PdfDropzone
-                file={documentFile}
-                onChange={onDocumentFileChange}
-              />
+              {selectedDocument ? (
+                <div className="flex items-center justify-between rounded-xl bg-zinc-900 px-4 py-4 text-white dark:bg-zinc-100 dark:text-zinc-900">
+                  <div className="flex items-center gap-2.5 overflow-hidden">
+                    <Check className="h-4 w-4 shrink-0" />
+                    <span className="truncate text-[14px] font-medium">
+                      {selectedDocument.fileName} 사용 중
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onSelectedDocIdChange(null)}
+                    className="ml-4 shrink-0 text-[13px] font-medium text-zinc-400 transition-colors hover:text-white dark:text-zinc-500 dark:hover:text-zinc-900"
+                  >
+                    변경
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {documents && documents.length > 0 && (
+                    <div className="overflow-hidden rounded-xl border border-border bg-background">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between p-4 text-[14px] font-medium"
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      >
+                        <span>
+                          저장된 서류에서 선택{" "}
+                          <span className="ml-1 text-muted-foreground">
+                            {documents.length}개
+                          </span>
+                        </span>
+                        {isDropdownOpen ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+
+                      {isDropdownOpen && (
+                        <div className="max-h-60 overflow-y-auto border-t border-border px-2 pb-2 pt-1">
+                          {documents.map((doc) => (
+                            <div
+                              key={doc.docId}
+                              onClick={() => handleSelectSavedDocument(doc.docId)}
+                              className="flex cursor-pointer items-center gap-3 rounded-lg p-3 transition-colors hover:bg-muted/50"
+                            >
+                              <FileText className="h-5 w-5 text-muted-foreground" />
+                              <div className="flex-1 overflow-hidden">
+                                <p className="truncate text-[14px] font-medium text-foreground">
+                                  {doc.fileName}
+                                </p>
+                                <p className="text-[12px] text-muted-foreground">
+                                  PDF ·{" "}
+                                  {new Date(doc.createdAt).toLocaleDateString(
+                                    "ko-KR",
+                                    {
+                                      month: "numeric",
+                                      day: "numeric",
+                                    }
+                                  )}{" "}
+                                  업로드
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div>
+                    <PdfDropzone
+                      file={documentFile}
+                      onChange={handleNewFileChange}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-3 text-[12.5px] text-muted-foreground">
+                올린 지원 서류는 자동 저장돼요. 마이페이지에서 언제든 삭제할 수
+                있어요.
+              </p>
             </div>
           </div>
         </div>

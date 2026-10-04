@@ -46,8 +46,9 @@ export default function useMyPage() {
   }, []);
 
   const changeNickname = async (nickname: string) => {
-    const updatedUser = await updateNickname(nickname);
-    setUser(updatedUser);
+    await updateNickname(nickname);
+    setUser((prevUser) => 
+      prevUser ? { ...prevUser, nickname } : prevUser);
   };
 
   const addDocument = async (file: File) => {

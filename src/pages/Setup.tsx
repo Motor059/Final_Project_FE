@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/common/Header";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import useSetup from "@/hooks/useSetup";
+import useMyPage from "@/hooks/useMyPage";
 import { useAlertStore } from "@/store/useAlertStore";
 
 import type {
@@ -28,13 +29,17 @@ export default function Setup() {
     startInterview,
   } = useSetup();
 
+  const { documents } = useMyPage();
+
   const [companyType, setCompanyType] = useState<CompanyType | null>(null);
   const [interviewStage, setInterviewStage] = useState<InterviewStage | null>(null);
 
   const [jobRole, setJobRole] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
 
   useEffect(() => {
     const retrySetup = location.state?.retrySetup;
@@ -42,7 +47,8 @@ export default function Setup() {
       setCompanyType(retrySetup.companyType || null);
       setInterviewStage(retrySetup.interviewStage || null);
       setCompanyName(retrySetup.companyName || "");
-      setJobRole(retrySetup.jobRole || "");    }
+      setJobRole(retrySetup.jobRole || "");    
+    }
   }, [location.state]);
 
   const canStart = useMemo(
@@ -72,6 +78,7 @@ export default function Setup() {
           jobDescription: jobDescription.trim() || undefined,
         },
         documentFile,
+        selectedDocId
       );
 
       resetInterview();
@@ -202,6 +209,10 @@ export default function Setup() {
               onCompanyNameChange={setCompanyName}
               onJobDescriptionChange={setJobDescription}
               onDocumentFileChange={setDocumentFile}
+              // 💡 추가된 프롭스 전달
+              documents={documents}
+              selectedDocId={selectedDocId}
+              onSelectedDocIdChange={setSelectedDocId}
             />
           </div>
 

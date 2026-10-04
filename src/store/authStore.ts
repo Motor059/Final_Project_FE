@@ -10,6 +10,7 @@ interface AuthState {
   lastSetting: string | null;
   fetchUserInfo: () => Promise<void>;
   logout: () => Promise<void>;
+  updateNicknameInStore: (nickname: string) => void;
 }
 
 const formatCompanyType = (type: string) => {
@@ -21,9 +22,14 @@ const formatCompanyType = (type: string) => {
   return map[type] || type;
 };
 
+const initialLoginState = !!localStorage.getItem('accessToken');
+
+const cachedUserInfo = localStorage.getItem('userInfo');
+const initialUser = cachedUserInfo ? JSON.parse(cachedUserInfo) : null;
+
 export const useAuthStore = create<AuthState>((set) => ({
-  isLoggedIn: false,
-  user: null,
+  isLoggedIn: initialLoginState,
+  user: initialUser,
   lastSetting: null,
   
   fetchUserInfo: async () => {
@@ -37,13 +43,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (historyData?.sessions?.length > 0) {
         const latest = historyData.sessions[0];
-        
         const company = latest.companyName || formatCompanyType(latest.companyType); 
         const job = latest.jobRole; 
         const stage = latest.interviewStage === 'TECHNICAL' ? '기술' : '인성'; 
         
         formattedSetting = [company, job, stage].filter(Boolean).join(' · ');
       }
+
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
 
       set({ 
         isLoggedIn: true, 
@@ -53,9 +60,21 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     } catch (error) {
       set({ isLoggedIn: false, user: null, lastSetting: null });
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userInfo');
       console.error("유저 정보 조회 실패:", error);
       throw error;
     }
+  },
+
+  updateNicknameInStore: (nickname: string) => {
+    set((state) => {
+      if (!state.user) return state;
+      const updatedUser = { ...state.user, nickname };
+      localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      return { user: updatedUser };
+    });
   },
 
   logout: async () => {
@@ -66,6 +85,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } finally {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userInfo');
       set({ isLoggedIn: false, user: null, lastSetting: null });
       window.location.href = '/';
     }
