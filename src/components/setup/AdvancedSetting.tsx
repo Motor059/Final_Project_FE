@@ -8,6 +8,7 @@ import JobRoleChips from "./JobRoleChips";
 import PdfDropzone from "./PdfDropzone";
 
 interface AdvancedSettingProps {
+  initiallyOpen?: boolean;
   jobRole: string;
   jobRoleOptions: string[];
   companyName: string;
@@ -23,6 +24,7 @@ interface AdvancedSettingProps {
 }
 
 export default function AdvancedSetting({
+  initiallyOpen = false,
   jobRole,
   jobRoleOptions,
   companyName,
@@ -36,7 +38,7 @@ export default function AdvancedSetting({
   selectedDocId,
   onSelectedDocIdChange,
 }: AdvancedSettingProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleSelectSavedDocument = (docId: number) => {

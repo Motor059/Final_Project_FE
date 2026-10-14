@@ -1,10 +1,12 @@
+import { scoreText } from "@/lib/reportDisplay";
+
 export interface InterviewHistoryItem {
   id: number;
   date: string;
   company: string;
   role: string;
   stage: string;
-  score?: number;
+  score?: number | null;
 }
 
 interface HistoryListProps {
@@ -72,7 +74,7 @@ export default function HistoryList({
                 </p>
 
                 <p className="mt-1 text-[22px] font-semibold leading-none text-foreground">
-                   {item.score ?? "-"}
+                   {scoreText(item.score)}
                 </p>
               </div>
 

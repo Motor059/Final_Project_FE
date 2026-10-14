@@ -14,6 +14,7 @@ export const getDocuments = async (): Promise<DocumentItem[]> => {
 
 export const uploadDocument = async (
   file: File,
+  signal?: AbortSignal,
 ): Promise<DocumentItem> => {
   const formData = new FormData();
   formData.append("file", file);
@@ -22,6 +23,7 @@ export const uploadDocument = async (
     "/api/v1/documents",
     formData,
     {
+      signal,
       headers: {
         "Content-Type": "multipart/form-data",
       },

@@ -1,5 +1,3 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 @tailwind base;
 @tailwind components;
@@ -18,7 +16,6 @@
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
     
-    /* Benly 메인 색상 적용  */
     --primary: oklch(0.145 0 0);
     --primary-foreground: oklch(0.985 0 0);
     --ring: oklch(0.145 0 0);
@@ -95,5 +92,45 @@
   }
   html {
     font-family: var(--font-sans);
+  }
+}
+/* 공통 로딩: 요청 시간을 늘리지 않고 표시만 부드럽게 전환한다. */
+@keyframes devoir-loading-turn {
+  to { transform: rotate(360deg); }
+}
+@keyframes devoir-loading-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes devoir-loading-breathe {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+.devoir-loading-spinner {
+  animation: devoir-loading-turn 1.1s linear infinite;
+  transform-origin: center;
+}
+.devoir-loading-enter {
+  animation: devoir-loading-enter 180ms ease-out 120ms both;
+}
+.devoir-loading-skeleton {
+  animation: devoir-loading-breathe 2s ease-in-out infinite;
+}
+@keyframes devoir-report-analysis {
+  0%, 100% { opacity: 0.25; }
+  35% { opacity: 1; }
+}
+.devoir-report-analysis-dot {
+  animation: devoir-report-analysis 3.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 처리 중 표시의 회전은 느리게 유지하고 장식 효과는 줄인다. */
+  .devoir-loading-spinner {
+    animation-duration: 2.4s;
+  }
+  .devoir-loading-enter,
+  .devoir-loading-skeleton,
+  .devoir-report-analysis-dot {
+    animation: none;
   }
 }

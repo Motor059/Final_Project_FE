@@ -1,10 +1,13 @@
 import Header from "@/components/common/Header";
+import PageLoading from "@/components/common/PageLoading";
 import HistoryList, {
   type InterviewHistoryItem,
 } from "@/components/history/HistoryList";
 import HistorySummary from "@/components/history/HistorySummary";
 import useHistory from "@/hooks/useHistory";
 import { useNavigate } from "react-router-dom";
+import { companyTypeLabel, interviewStageLabel } from "@/lib/reportDisplay";
+import { reportPath } from "@/lib/reportNavigation";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -19,30 +22,6 @@ const formatDate = (dateString: string) => {
     .replace(/\.$/, "");
 };
 
-const formatCompanyType = (companyType: string) => {
-  switch (companyType) {
-    case "BIG_TECH_SW":
-      return "대기업 SW";
-    case "SERVICE":
-      return "서비스 기업";
-    case "FINANCE_IT":
-      return "금융 IT";
-    default:
-      return companyType;
-  }
-};
-
-const formatInterviewStage = (interviewStage: string) => {
-  switch (interviewStage) {
-    case "TECHNICAL":
-      return "기술 면접";
-    case "PERSONALITY":
-      return "인성·임원 면접";
-    default:
-      return interviewStage;
-  }
-};
-
 export default function History() {
   const { history, isLoading, isError } = useHistory();
   const navigate = useNavigate();
@@ -51,34 +30,25 @@ export default function History() {
     history?.sessions.map((session) => ({
       id: session.sessionId,
       date: formatDate(session.createdAt),
-      company: session.companyName ?? formatCompanyType(session.companyType),
+      company: session.companyName ?? companyTypeLabel(session.companyType),
       role: session.jobRole ?? "직무 미지정",
-      stage: formatInterviewStage(session.interviewStage),
+      stage: interviewStageLabel(session.interviewStage),
       score: session.totalScore,
     })) ?? [];
 
   const handleSelectHistory = (id: number) => {
-    navigate('/report', { state: { sessionId: id, isFromHistory: true } });
+    navigate(reportPath(id), { state: { sessionId: id, isFromHistory: true } });
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="mx-auto top-[68px] w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
-          <p className="text-[14px] text-muted-foreground">
-            면접 기록을 불러오는 중입니다.
-          </p>
-        </main>
-      </div>
-    );
+    return <PageLoading layout="history" title="지난 면접 기록을 불러오고 있어요" />;
   }
 
   if (isError) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="mx-auto top-[68px] w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
+        <main className="mx-auto w-full max-w-[780px] px-6 pb-14 pt-[124px] md:px-10 md:pb-16 md:pt-[132px]">
           <p className="text-[14px] text-muted-foreground">
             면접 기록을 불러오지 못했습니다.
           </p>

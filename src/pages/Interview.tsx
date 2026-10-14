@@ -1,46 +1,59 @@
-import { useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useCallback, useEffect } from "react";
+import { useNavigate, useLocation, useBlocker, useBeforeUnload } from "react-router-dom";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import InterviewHeader from "@/components/interview/InterviewHeader";
 import QuestionOrb from "@/components/interview/QuestionOrb";
 import ActionController from "@/components/interview/ActionController";
 import { useInterviewTimer } from "@/hooks/useInterviewTimer";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useQuestionSpeech } from "@/hooks/useQuestionSpeech";
 import Header from "@/components/common/Header";
 import { ChevronLeft } from "lucide-react";
 import ExitConfirmModal from "@/components/interview/ExitConfirmModal";
+import { useAlertStore } from "@/store/useAlertStore";
 
 export default function Interview() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { phase, startAndFetchFirstQuestion, isFinished, setExitModalOpen, setExitTargetPath } = useInterviewStore();
-  const isStartRequested = useRef(false);
+  const { phase, startAndFetchFirstQuestion, detachInterview, isFinished, setExitModalOpen, setExitTargetPath, isExitModalOpen, isPaused, setPaused, questionSpeechError } = useInterviewStore();
+  const showAlert = useAlertStore((state) => state.showAlert);
+  const isAlertOpen = useAlertStore((state) => state.isOpen);
+  const routeSessionId = location.state?.sessionId;
+  const shouldBlock = useCallback(() => {
+    const current = useInterviewStore.getState();
+    return current.sessionId !== null && !current.isFinished && !current.isSessionUnavailable;
+  }, []);
+  const blocker = useBlocker(shouldBlock);
+  useBeforeUnload(useCallback((event: BeforeUnloadEvent) => {
+    if (shouldBlock()) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }, [shouldBlock]));
 
   useInterviewTimer();
   useSpeechRecognition();
+  useQuestionSpeech();
 
-  // 첫 진입 시 면접 시작 API 트리거
   useEffect(() => {
-    const sessionId = location.state?.sessionId;
-    if (!sessionId) {
-      alert("잘못된 접근입니다. 면접을 다시 설정해주세요.");
-      navigate('/setup', { replace: true });
+    setPaused(blocker.state === 'blocked' || isExitModalOpen || isAlertOpen);
+  }, [blocker.state, isExitModalOpen, isAlertOpen, setPaused]);
+
+  useEffect(() => {
+    if (!Number.isInteger(routeSessionId) || routeSessionId <= 0) {
+      showAlert("잘못된 접근입니다. 면접을 다시 설정해주세요.", () => navigate('/setup', { replace: true }));
       return;
     }
-    if (isStartRequested.current) return;
-    isStartRequested.current = true;
-    startAndFetchFirstQuestion(sessionId);
-  }, [location.state, navigate, startAndFetchFirstQuestion]);
+    void startAndFetchFirstQuestion(routeSessionId);
+    return () => detachInterview();
+  }, [routeSessionId, navigate, showAlert, startAndFetchFirstQuestion, detachInterview]);
 
-  // 면접 종료(isFinished) 시 리포트 페이지로 이동
   useEffect(() => {
-    if (isFinished) {
-      const sessionId = location.state?.sessionId;
-      navigate('/report', { replace: true, state: { sessionId } }); 
+    if (isFinished && !isPaused) {
+      navigate('/report', { replace: true, state: { sessionId: routeSessionId } });
     }
-  }, [isFinished, navigate, location.state]);
+  }, [isFinished, isPaused, navigate, routeSessionId]);
 
-  // 중도 포기(뒤로 가기) 핸들러
   const handleGoBack = async () => {
     setExitTargetPath('/setup');
     setExitModalOpen(true);
@@ -49,7 +62,7 @@ export default function Interview() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center pt-[128px]">
       <Header />   
-      <ExitConfirmModal />     
+      <ExitConfirmModal blocker={blocker} />
       <div className="fixed top-[68px] left-0 z-50 w-full flex flex-col bg-white/80 backdrop-blur-md">
         <header className="relative w-full h-[60px] flex items-center justify-center px-6 md:px-10">
           <button 
@@ -68,6 +81,7 @@ export default function Interview() {
       </div>
       
       <main className="flex-1 w-full flex flex-col items-center justify-center p-6 mt-10">
+        {questionSpeechError && <p className="mb-4 text-sm text-[#78716C] text-center" role="status">{questionSpeechError}</p>}
         <QuestionOrb />
       </main>
 

@@ -123,6 +123,22 @@ export class OrbEngine {
   private prog: WebGLProgram | null = null;
   private vbo: WebGLBuffer | null = null;
   private u: Record<string, WebGLUniformLocation | null> = {};
+  private aPos = -1;
+  private destroyed = false;
+
+  private onContextLost = (event: Event) => {
+    event.preventDefault();
+    cancelAnimationFrame(this.reqId);
+    this.reqId = 0;
+  };
+
+  private onContextRestored = () => {
+    if (this.destroyed) return;
+    this.prog = null;
+    this.vbo = null;
+    this.u = {};
+    this.initGL();
+  };
   
   private reqId: number = 0;
   private DPR = 1;
@@ -141,6 +157,8 @@ export class OrbEngine {
     this.canvas = canvas;
     this.bgEl = bgEl;
     this.DPR = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.addEventListener('webglcontextlost', this.onContextLost);
+    this.canvas.addEventListener('webglcontextrestored', this.onContextRestored);
     this.initGL();
   }
 
@@ -152,6 +170,7 @@ export class OrbEngine {
     this.gl.compileShader(sh);
     if (!this.gl.getShaderParameter(sh, this.gl.COMPILE_STATUS)) {
       console.error('[OrbEngine]', this.gl.getShaderInfoLog(sh));
+      this.gl.deleteShader(sh);
       return null;
     }
     return sh;
@@ -173,16 +192,30 @@ export class OrbEngine {
 
     const vs = this.mkShader(this.gl.VERTEX_SHADER, VS);
     const fs = this.mkShader(this.gl.FRAGMENT_SHADER, FS);
-    if (!vs || !fs) return;
+    if (!vs || !fs) {
+      if (vs) this.gl.deleteShader(vs);
+      if (fs) this.gl.deleteShader(fs);
+      return;
+    }
 
     this.prog = this.gl.createProgram();
-    if (!this.prog) return;
+    if (!this.prog) {
+      this.gl.deleteShader(vs);
+      this.gl.deleteShader(fs);
+      return;
+    }
 
     this.gl.attachShader(this.prog, vs);
     this.gl.attachShader(this.prog, fs);
     this.gl.linkProgram(this.prog);
 
-    if (!this.gl.getProgramParameter(this.prog, this.gl.LINK_STATUS)) return;
+    this.gl.deleteShader(vs);
+    this.gl.deleteShader(fs);
+    if (!this.gl.getProgramParameter(this.prog, this.gl.LINK_STATUS)) {
+      this.gl.deleteProgram(this.prog);
+      this.prog = null;
+      return;
+    }
 
     this.vbo = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
@@ -194,7 +227,7 @@ export class OrbEngine {
     this.u.uAmp = this.gl.getUniformLocation(this.prog, 'uAmp');
     this.u.uDPR = this.gl.getUniformLocation(this.prog, 'uDPR');
     this.u.uOpacity = this.gl.getUniformLocation(this.prog, 'uOpacity');
-    this.u.aPos = this.gl.getAttribLocation(this.prog, 'aPos');
+    this.aPos = this.gl.getAttribLocation(this.prog, 'aPos');
 
     this.gl.clearColor(0, 0, 0, 0);
     this.gl.enable(this.gl.BLEND);
@@ -206,7 +239,7 @@ export class OrbEngine {
   }
 
   private renderLoop = (ts: number) => {
-    if (!this.gl || !this.prog) return;
+    if (this.destroyed || !this.gl || !this.prog || this.gl.isContextLost()) return;
     this.reqId = requestAnimationFrame(this.renderLoop);
 
     const dt = Math.min((ts - this.orbLast) / 1000, 0.05);
@@ -215,7 +248,7 @@ export class OrbEngine {
     
     if (this.orbOpacity < 1.0) this.orbOpacity = Math.min(1.0, this.orbOpacity + dt * 2.0);
     
-    let blendTgt = 0, ampTgt = 0, rotSpd = 0.10;
+    let blendTgt: number, ampTgt: number, rotSpd: number;
     const t = this.orbTime;
 
     if (this.orbAgentState === 'talking') {
@@ -236,7 +269,6 @@ export class OrbEngine {
     this.orbAmp += (ampTgt - this.orbAmp) * 0.28;
     this.orbRotY += dt * rotSpd;
 
-    // 배경 CSS Glow 요소 팽창 효과 동기화
     if (this.bgEl) {
       if (this.orbAgentState === 'talking') {
         const _rp = Math.sin(t * 8.5) * 0.13 + Math.sin(t * 14.2) * 0.05 + Math.sin(t * 5.3) * 0.08;
@@ -262,8 +294,8 @@ export class OrbEngine {
     this.gl.uniform1f(this.u.uOpacity, this.orbOpacity);
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
-    this.gl.enableVertexAttribArray(this.u.aPos as number);
-    this.gl.vertexAttribPointer(this.u.aPos as number, 3, this.gl.FLOAT, false, 0, 0);
+    this.gl.enableVertexAttribArray(this.aPos);
+    this.gl.vertexAttribPointer(this.aPos, 3, this.gl.FLOAT, false, 0, 0);
     this.gl.drawArrays(this.gl.POINTS, 0, this.N_PTS);
   };
 
@@ -277,9 +309,18 @@ export class OrbEngine {
 
   // 메모리 누수 방지를 위한 클린업 메서드
   public destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
     cancelAnimationFrame(this.reqId);
-    if (this.gl) {
-      this.gl.getExtension('WEBGL_lose_context')?.loseContext();
+    this.canvas.removeEventListener('webglcontextlost', this.onContextLost);
+    this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored);
+    if (this.gl && !this.gl.isContextLost()) {
+      if (this.vbo) this.gl.deleteBuffer(this.vbo);
+      if (this.prog) this.gl.deleteProgram(this.prog);
     }
+    this.vbo = null;
+    this.prog = null;
+    this.gl = null;
+    this.u = {};
   }
 }

@@ -1,4 +1,3 @@
-// 모든 API 응답의 공통 껍데기 타입
 export interface ApiResponse<T> {
   code: number;
   message: string;
@@ -8,7 +7,7 @@ export interface ApiResponse<T> {
 // 세션 조회 응답 데이터 타입 (GET /api/v1/sessions/{id})
 export interface SessionData {
   sessionId: number;
-  status: 'READY' | 'IN_PROGRESS' | 'COMPLETED'; // 상태값 (수도코드 기반 추론)
+  status: 'READY' | 'IN_PROGRESS' | 'COMPLETED';
   companyType: string;
   interviewStage: string;
   companyName: string;
@@ -23,8 +22,9 @@ export interface SessionData {
 export interface CurrentQuestionData {
   questionId: number;
   type: 'MAIN' | 'FOLLOW_UP';
-  followUpType: 'WHY' | 'WHAT_IF' | 'DEEP' | null;
+  followUpType: 'WHY' | 'WHAT_IF' | 'DEEP' | 'ACTION' | 'RESULT' | 'REFLECTION' | null;
   content: string;
+  seq?: number;
   mainOrder: number;
   followUpOrder: number | null;
   label: string;
@@ -36,29 +36,41 @@ export interface CurrentQuestionData {
 
 export type NextActionType = 'FOLLOW_UP' | 'NEXT_MAIN' | 'FINISH' | 'RETRY_INPUT';
 
-// 음성/텍스트 답변 제출 응답 데이터 타입 (POST /api/v1/answers/audio, text)
+export interface NextAction<T extends NextActionType = NextActionType> {
+  type: T;
+  nextQuestionId?: number;
+  message?: string;
+}
+
+export interface TextAnswerRequest {
+  questionId: number;
+  transcript: string;
+}
+
+// 답변 제출 응답 (POST /api/v1/sessions/{id}/answers/audio, text)
 export interface AnswerSubmitData {
   answer: {
     answerId: number;
     questionId: number;
     inputType: 'AUDIO' | 'TEXT';
     transcript: string;
-    durationSeconds: number | null; // 텍스트 답변 시 null
-    sttStatus: 'SUCCESS' | 'PARTIAL' | null; // 텍스트 답변 시 null
+    durationSeconds: number | null;
+    sttStatus: 'SUCCESS' | 'PARTIAL' | null;
   };
-  nextAction: {
-    type: NextActionType;
-    nextQuestionId?: number;
-    message?: string;
-  };
+  nextAction: NextAction;
 }
 
-// 주제 건너뛰기 응답 데이터 타입 (POST /api/v1/questions/{qid}/skip)
+// 질문 건너뛰기 응답 (POST /api/v1/questions/{qid}/skip?sessionId={sessionId})
 export interface SkipTopicData {
-  nextAction: {
-    type: 'NEXT_MAIN' | 'FINISH';
-    nextQuestionId?: number;
+  answer: {
+    answerId: number;
+    questionId: number;
+    inputType: 'SKIP';
+    transcript: null;
+    durationSeconds: null;
+    sttStatus: null;
   };
+  nextAction: NextAction<'FOLLOW_UP' | 'NEXT_MAIN' | 'FINISH'>;
 }
 
 // 채점 시작 요청 응답 타입 (POST /api/v1/sessions/{id}/feedback)

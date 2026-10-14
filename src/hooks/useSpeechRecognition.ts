@@ -1,47 +1,54 @@
-import { useEffect, useRef } from "react";
-import { useInterviewStore } from "@/store/useInterviewStore";
+import { useEffect } from 'react';
+import { useInterviewStore } from '@/store/useInterviewStore';
+
+interface RecognitionEvent {
+  results: { length: number; [index: number]: { [index: number]: { transcript: string } } };
+}
+interface Recognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: RecognitionEvent) => void) | null;
+  start: () => void;
+  abort: () => void;
+}
+type RecognitionConstructor = new () => Recognition;
 
 export function useSpeechRecognition() {
-  const { phase, inputMode, setAnswerText } = useInterviewStore();
-    const recognitionRef = useRef<any>(null);
+  const { phase, inputMode, isSubmitting, isFinished, isPaused, audioStatus, sessionId, currentQuestion, recordingAttempt } = useInterviewStore();
+  const questionId = currentQuestion?.questionId;
 
   useEffect(() => {
-    // 브라우저 지원 여부 확인 및 초기 세팅
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.warn("이 브라우저는 음성 인식을 지원하지 않습니다.");
-      return;
-    }
-
+    if (phase !== 'RECORDING' || inputMode !== 'AUDIO' || isSubmitting || isFinished || isPaused || audioStatus !== 'READY' || !sessionId || !questionId) return;
+    const browser = window as Window & { SpeechRecognition?: RecognitionConstructor; webkitSpeechRecognition?: RecognitionConstructor };
+    const SpeechRecognition = browser.SpeechRecognition || browser.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    let active = true;
+    const previousTranscript = useInterviewStore.getState().answerText;
     const recognition = new SpeechRecognition();
-    recognition.continuous = true; // 끊기지 않고 계속 듣기
-    recognition.interimResults = true; // 말하는 도중에도 중간 결과물 뱉어내기
-    recognition.lang = "ko-KR"; // 한국어 설정
-
-    // 음성이 인식될 때마다 전역 스토어의 answerText 업데이트
-    recognition.onresult = (event: any) => {
-      let transcript = "";
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-      }
-      setAnswerText(transcript);
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'ko-KR';
+    recognition.onresult = (event) => {
+      const current = useInterviewStore.getState();
+      if (!active || current.phase !== 'RECORDING' || current.inputMode !== 'AUDIO' || current.isSubmitting || current.isPaused || current.sessionId !== sessionId || current.currentQuestion?.questionId !== questionId || current.recordingAttempt !== recordingAttempt) return;
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) transcript += event.results[i][0].transcript;
+      current.setAnswerText([previousTranscript, transcript].filter(Boolean).join(' '));
     };
-
-    recognitionRef.current = recognition;
-  }, [setAnswerText]);
-
-  // 면접 상태와 입력 모드에 따라 마이크 켜고 끄기
-  useEffect(() => {
-    if (phase === "RECORDING" && inputMode === "AUDIO") {
-      try {
-        recognitionRef.current?.start();
-      } catch (e) {
-        // 이미 켜져 있는데 다시 켜려고 할 때 발생하는 에러 무시
-      }
-    } else {
-      recognitionRef.current?.stop();
+    try {
+      recognition.start();
+    } catch (error) {
+      console.warn('브라우저 음성 인식을 시작하지 못했습니다:', error);
     }
-    // 단계가 넘어가면 확실히 마이크 끄기
-    return () => recognitionRef.current?.stop();
-  }, [phase, inputMode]);
+    return () => {
+      active = false;
+      recognition.onresult = null;
+      try {
+        recognition.abort();
+      } catch (error) {
+        console.warn('음성 인식 정리 실패:', error);
+      }
+    };
+  }, [phase, inputMode, isSubmitting, isFinished, isPaused, audioStatus, sessionId, questionId, recordingAttempt]);
 }

@@ -1,23 +1,15 @@
 import { useInterviewStore } from "@/store/useInterviewStore";
 import { Badge } from "@/components/ui/badge";
-import { useEffect } from "react";
+import { followUpLabel } from "@/lib/reportDisplay";
 
 export default function InterviewHeader() {
   const { currentQuestion, currentMainIndex } = useInterviewStore();
   
-  const totalMains = 5;
-  const rawType = String((currentQuestion as any)?.type || "MAIN").trim().toUpperCase();
+  const totalMains = currentQuestion?.mainProgress?.total || 5;
+  const rawType = String(currentQuestion?.type || "MAIN").trim().toUpperCase();
   const isFollowUp = rawType === "FOLLOW_UP" || rawType === "SUB" || rawType === "TAIL";   
-  const badgeLabel = isFollowUp ? "Deep Dive" : "메인 질문";
-  const subLabel = isFollowUp ? "What-if" : "";
-
-  useEffect(() => {
-    if (currentQuestion) {
-      console.log("[디버깅] 현재 질문 타입(type):", rawType);
-      console.log("[디버깅] 현재 질문 순서(seq):", (currentQuestion as any)?.seq);
-      console.log("[디버깅] 질문 내용:", (currentQuestion as any)?.content);
-    }
-  }, [currentQuestion, rawType]);
+  const badgeLabel = isFollowUp ? "꼬리 질문" : "메인 질문";
+  const subLabel = isFollowUp ? followUpLabel(currentQuestion?.followUpType) : "";
 
   return (
     <div className="w-full flex flex-col gap-2.5">

@@ -1,39 +1,35 @@
-import { useState, useEffect } from 'react';
+import { LoadingIndicator } from '@/components/common/LoadingState';
+
+const analysisItems = [
+  { title: '답변 분석', description: '질문과 답변의 내용을 살펴봐요.' },
+  { title: 'STAR 구조 평가', description: '상황·과제·행동·결과의 흐름을 확인해요.' },
+  { title: '종합 점수 계산', description: '항목별 평가와 질문별 피드백을 정리해요.' },
+];
 
 export default function ReportLoading() {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStep((prev) => (prev < 2 ? prev + 1 : prev));
-    }, 1000); // 1초 간격
-
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white">
-      {/* 커스텀 스피너 */}
-      <div className="w-[34px] h-[34px] border-[2.5px] border-[#E7E5E4] border-t-[#0A0A0A] rounded-full animate-spin mb-8" />
-      
-      <h2 className="text-[22px] font-semibold text-[#1C1917] mb-8">
-        면접을 분석하고 있어요
-      </h2>
-      
-      <div className="flex flex-col gap-3 text-[14px] font-medium">
-        <div className={`flex items-center gap-3 transition-colors duration-500 ${step >= 0 ? 'text-[#1C1917]' : 'text-[#A8A29E]'}`}>
-          <span className={`w-3 h-3 rounded-full transition-colors duration-500 ${step >= 0 ? 'bg-[#1C1917]' : 'bg-[#E7E5E4]'}`} />
-          답변 분석 중
+    <div className="flex min-h-screen items-center justify-center bg-[#FAFAF9] px-6 py-12">
+      <div className="w-full max-w-[380px]">
+        <div role="status" aria-live="polite" className="flex flex-col items-center text-center">
+          <span className="mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white text-[#44403C] shadow-sm">
+            <LoadingIndicator size="lg" />
+          </span>
+          <h1 className="text-[21px] font-semibold tracking-[-0.03em] text-[#1C1917]">면접을 분석하고 있어요</h1>
+          <p className="mt-2 break-keep text-[13px] leading-[1.8] text-[#8A847F]">답변을 바탕으로 점수와 피드백을 준비하고 있어요.</p>
         </div>
-        
-        <div className={`flex items-center gap-3 transition-colors duration-500 ${step >= 1 ? 'text-[#1C1917]' : 'text-[#A8A29E]'}`}>
-          <span className={`w-3 h-3 rounded-full transition-colors duration-500 ${step >= 1 ? 'bg-[#1C1917]' : 'bg-[#E7E5E4]'}`} />
-          STAR 구조 평가 중
-        </div>
-        
-        <div className={`flex items-center gap-3 transition-colors duration-500 ${step >= 2 ? 'text-[#1C1917]' : 'text-[#A8A29E]'}`}>
-          <span className={`w-3 h-3 rounded-full transition-colors duration-500 ${step >= 2 ? 'bg-[#1C1917]' : 'bg-[#E7E5E4]'}`} />
-          종합 점수 계산 중
+        <div className="mt-8 rounded-2xl border border-[#EDECE9] bg-white px-6 py-2">
+          <p className="pt-4 text-[11px] font-semibold text-[#A8A29E]">분석 항목</p>
+          <ul className="divide-y divide-[#F0EFED]">
+            {analysisItems.map((item, index) => (
+              <li key={item.title} className="flex items-start gap-3 py-4">
+                <span aria-hidden="true" className="devoir-report-analysis-dot mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#78716C]" style={{ animationDelay: `${index * 1.2}s` }} />
+                <div>
+                  <h2 className="text-[13px] font-semibold text-[#57534E]">{item.title}</h2>
+                  <p className="mt-1 text-[12px] leading-[1.7] text-[#A8A29E]">{item.description}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>

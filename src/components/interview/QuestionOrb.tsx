@@ -1,46 +1,66 @@
 import { useEffect, useState, useRef } from "react";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import { OrbEngine, type OrbState } from "@/lib/OrbEngine";
+import LoadingState, { LoadingIndicator } from "@/components/common/LoadingState";
 
 export default function QuestionOrb() {
-  const { phase, currentQuestion, setPhase } = useInterviewStore();
-  const [displayedText, setDisplayedText] = useState("");
+  const { phase, currentQuestion, recordingAttempt, isSubmitting, questionError, answerError } = useInterviewStore();
+  const isThinkingBusy = phase === "THINKING" && isSubmitting && !questionError && !answerError;
+  const [typedQuestion, setTypedQuestion] = useState<{ questionId: number; attempt: number; content: string; text: string } | null>(null);
+  const displayedText = phase === 'ASKING'
+    ? (typedQuestion && typedQuestion.questionId === currentQuestion?.questionId &&
+       typedQuestion.attempt === recordingAttempt && typedQuestion.content === currentQuestion?.content ? typedQuestion.text : '')
+    : currentQuestion?.content || '';
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<OrbEngine | null>(null);
 
   useEffect(() => {
-    if (!currentQuestion?.content) return;
+    if (!currentQuestion?.content || phase !== 'ASKING') return;
 
-    if (phase === "ASKING") {
-      setDisplayedText(""); 
-      let currentIndex = 0;
-      const fullText = currentQuestion.content;
-      
-      const typingInterval = setInterval(() => {
-        if (currentIndex < fullText.length) {
-          setDisplayedText(fullText.slice(0, currentIndex + 1));
-          currentIndex++;
-        } else {
-          clearInterval(typingInterval);
-          setTimeout(() => {
-            setPhase("RECORDING");
-          }, 500);
-        }
-      }, 60);
-      
-      return () => clearInterval(typingInterval);
-    } else {
-      setDisplayedText(currentQuestion.content);
-    }
-  }, [currentQuestion?.content, phase, setPhase]);
+    const sessionId = useInterviewStore.getState().sessionId;
+    const questionId = currentQuestion.questionId;
+    const content = currentQuestion.content;
+    const characters = Array.from(content);
+    let currentIndex = 0;
+    let active = true;
+    setTypedQuestion({ questionId, attempt: recordingAttempt, content, text: '' });
+
+    const typingInterval = setInterval(() => {
+      const state = useInterviewStore.getState();
+      if (!active || state.sessionId !== sessionId || state.currentQuestion?.questionId !== questionId ||
+          state.recordingAttempt !== recordingAttempt || state.phase !== 'ASKING' || state.isFinished || state.questionError) {
+        clearInterval(typingInterval);
+        return;
+      }
+      if (state.isPaused) return;
+      if (currentIndex < characters.length) {
+        currentIndex++;
+        setTypedQuestion({ questionId, attempt: recordingAttempt, content, text: characters.slice(0, currentIndex).join('') });
+      } else {
+        // 마지막 글자가 표시된 다음 틱에서 질문 표시 완료를 알린다.
+        clearInterval(typingInterval);
+        state.completeQuestionPresentation(questionId, recordingAttempt, 'TEXT');
+      }
+    }, 60);
+
+    return () => {
+      active = false;
+      clearInterval(typingInterval);
+    };
+  }, [currentQuestion?.questionId, currentQuestion?.content, recordingAttempt, phase]);
 
   // OrbEngine 생성 (캔버스가 마운트된 직후 1회만 생성)
   useEffect(() => {
-    if (phase === "PREPARING" || !canvasRef.current || engineRef.current) return;
-    engineRef.current = new OrbEngine(canvasRef.current, bgRef.current);
-  }, [phase]);
+    if (!canvasRef.current) return;
+    const engine = new OrbEngine(canvasRef.current, bgRef.current);
+    engineRef.current = engine;
+    return () => {
+      engine.destroy();
+      if (engineRef.current === engine) engineRef.current = null;
+    };
+  }, []);
 
   // 상태 변경 시 엔진에 상태값만 주입
   useEffect(() => {
@@ -54,34 +74,12 @@ export default function QuestionOrb() {
     engineRef.current.setState(orbState);
   }, [phase]);
 
-  // 메모리 해제
-  useEffect(() => {
-    return () => {
-      if (engineRef.current) {
-        engineRef.current.destroy();
-        engineRef.current = null;
-      }
-    };
-  }, []);
-  
-  // --- UI 렌더링 영역 ---
-
-  if (phase === "PREPARING") {
-    return (
-      <div className="flex flex-col items-center justify-center w-full mt-16 animate-Devoir-fade">
-        <div className="w-[44px] h-[44px] border-[3px] border-[#F5F5F4] border-t-[#1C1917] rounded-full animate-spin mb-10" />
-        <h2 className="text-[26px] font-bold text-[#1C1917] mb-3 tracking-tight">
-          면접관이 질문을 준비하고 있어요...
-        </h2>
-        <p className="text-[15px] font-medium text-[#A8A29E]">
-          면접 설정과 지원 서류를 바탕으로 질문을 만드는 중
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-3xl space-y-12 animate-Devoir-fade">
+    <>
+      {phase === "PREPARING" && !questionError && (
+        <LoadingState title="질문을 준비하고 있어요" description="면접 설정에 맞는 질문을 불러오고 있어요." className="w-full py-12" />
+      )}
+    <div className={`flex-col items-center justify-center w-full max-w-3xl space-y-12 animate-Devoir-fade ${phase === 'PREPARING' ? 'hidden' : 'flex'}`} aria-hidden={phase === 'PREPARING'}>
       
       {/* 160x160 오로라 구슬 영역 */}
       <div className="relative flex items-center justify-center w-[160px] h-[160px]">
@@ -104,23 +102,9 @@ export default function QuestionOrb() {
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[160px] h-[160px] rounded-full pointer-events-none z-10"
         />
 
-        {/* 레이어 2: Thinking 상태 점 3개 오버레이 */}
+        {/* 레이어 2: 답변 처리 중 표시 */}
         <div className="relative z-20 flex items-center justify-center w-[160px] h-[160px]">
-          {phase === "THINKING" && (
-            <>
-              <style>{`
-                @keyframes benly-dot {
-                  0%, 60%, 100% { transform: translateY(0); opacity: .35; }
-                  30% { transform: translateY(-5px); opacity: 1; }
-                }
-              `}</style>
-              <div className="flex items-center gap-[5px]">
-                <i className="w-[6px] h-[6px] rounded-full bg-[#6a55a8] block animate-[benly-dot_1.25s_ease-in-out_infinite]" />
-                <i className="w-[6px] h-[6px] rounded-full bg-[#6a55a8] block animate-[benly-dot_1.25s_ease-in-out_infinite]" style={{ animationDelay: '0.18s' }} />
-                <i className="w-[6px] h-[6px] rounded-full bg-[#6a55a8] block animate-[benly-dot_1.25s_ease-in-out_infinite]" style={{ animationDelay: '0.36s' }} />
-              </div>
-            </>
-          )}
+          {isThinkingBusy && <LoadingIndicator className="text-[#78716C]" />}
         </div>
       </div>
 
@@ -128,13 +112,14 @@ export default function QuestionOrb() {
         {phase === "ASKING" && (
           <p className="text-[#A8A29E] text-[15px] font-medium">면접관이 질문하고 있어요</p>
         )}
-        {phase === "THINKING" && (
-          <p className="text-[#A8A29E] text-[15px] font-medium">면접관이 답변을 듣고 다음 질문을 생각하고 있어요...</p>
+        {isThinkingBusy && (
+          <p className="text-[#A8A29E] text-[14px] font-medium" role="status">답변을 처리하고 다음 질문을 준비하고 있어요</p>
         )}
         <h2 className={`text-2xl sm:text-[28px] font-bold leading-relaxed break-keep transition-opacity duration-500 ${phase === "THINKING" ? "opacity-30" : "opacity-100"}`}>
           "{displayedText}"
         </h2>
       </div>
     </div>
+    </>
   );
 }

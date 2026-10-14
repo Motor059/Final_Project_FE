@@ -1,24 +1,22 @@
-import { useEffect } from "react";
-import { useInterviewStore } from "@/store/useInterviewStore";
+import { useEffect } from 'react';
+import { useInterviewStore } from '@/store/useInterviewStore';
 
 export function useInterviewTimer() {
-  const { phase, timeLeft, setTimeLeft, setPhase } = useInterviewStore();
+  const { phase, timeLeft, isSubmitting, isFinished, isPaused, inputMode, audioStatus, setTimeLeft, submitAnswerAndNext } = useInterviewStore();
 
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval>;
-
-    // 답변 중(RECORDING)이고 시간이 남아있을 때만 1초마다 타이머 감소
-    if (phase === "RECORDING" && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } 
-    // 시간이 0이 되면 자동으로 생각 중(THINKING) 단계로 강제 전환
-    else if (timeLeft === 0 && phase === "RECORDING") {
-      setPhase("THINKING");
+    if (phase !== 'RECORDING' || isSubmitting || isFinished || isPaused || (inputMode === 'AUDIO' && audioStatus !== 'READY')) return;
+    if (timeLeft === 0) {
+      const current = useInterviewStore.getState();
+      if (current.timeLeft === 0 && !current.isSubmitting) void submitAnswerAndNext();
+      return;
     }
-
-    // 컴포넌트가 사라지거나 단계가 바뀌면 타이머 메모리 누수 방지
+    const timer = setInterval(() => {
+      const current = useInterviewStore.getState();
+      if (current.phase === 'RECORDING' && !current.isSubmitting && !current.isFinished && !current.isPaused && (current.inputMode === 'TEXT' || current.audioStatus === 'READY')) {
+        setTimeLeft((previous) => previous - 1);
+      }
+    }, 1000);
     return () => clearInterval(timer);
-  }, [phase, timeLeft, setTimeLeft, setPhase]);
+  }, [phase, timeLeft, isSubmitting, isFinished, isPaused, inputMode, audioStatus, setTimeLeft, submitAnswerAndNext]);
 }
