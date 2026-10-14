@@ -1,65 +1,28 @@
 import { useNavigate } from 'react-router-dom';
+import type { LastInterviewSetting } from '@/types/setup';
+import { chooseLastInterviewSetup, readSavedInterviewSetup } from '@/lib/interviewSetup';
+import { companyTypeLabel } from '@/lib/reportDisplay';
 
 interface HeroSectionProps {
   isLoggedIn: boolean;
   userName?: string;
-  lastSetting?: string | null;
+  userId?: number;
+  lastSetting?: LastInterviewSetting | null;
 }
 
-export default function HeroSection({ isLoggedIn, userName, lastSetting }: HeroSectionProps) {
+export default function HeroSection({ isLoggedIn, userName, userId, lastSetting }: HeroSectionProps) {
   const navigate = useNavigate();
 
-  let savedSetup: any = null;
-  try {
-    const savedSetupStr = sessionStorage.getItem("interviewSetup");
-    if (savedSetupStr) {
-      savedSetup = JSON.parse(savedSetupStr);
-    }
-  } catch (e) {
-    console.error("이전 설정 파싱 에러:", e);
-  }
-
-  const formatCompanyType = (type?: string) => {
-    if (!type) return '';
-    const map: Record<string, string> = {
-      BIG_TECH_SW: '대기업 SW',
-      SERVICE: '서비스 기업',
-      FINANCE_IT: '금융 IT',
-    };
-    return map[type] || type;
-  };
-
-  const formatStage = (stage?: string) => {
-    if (!stage) return '';
-    return stage === 'TECHNICAL' ? '기술' : '인성';
-  };
-
-  const displaySettingText = savedSetup
-    ? `${formatCompanyType(savedSetup.companyType)} · ${formatStage(savedSetup.interviewStage)}`
-    : lastSetting;
+  const savedSetup = isLoggedIn && userId ? readSavedInterviewSetup(userId) : null;
+  const retrySetup = isLoggedIn ? chooseLastInterviewSetup(savedSetup, lastSetting || null) : null;
+  const displaySettingText = retrySetup
+    ? `${companyTypeLabel(retrySetup.companyType)} · ${retrySetup.interviewStage === 'TECHNICAL' ? '기술' : '인성'}`
+    : null;
 
   const handleRetry = () => {
-    let retrySetup = null;
-
-    if (savedSetup) {
-      retrySetup = savedSetup;
-    } else if (lastSetting) {
-      retrySetup = {
-        companyType: lastSetting.includes("대기업") ? "BIG_TECH_SW" 
-                   : lastSetting.includes("서비스") ? "SERVICE" 
-                   : lastSetting.includes("금융") ? "FINANCE_IT" : null,
-        interviewStage: lastSetting.includes("기술") ? "TECHNICAL" 
-                      : lastSetting.includes("인성") ? "PERSONALITY" : null,
-      };
-    }
-
-    if (retrySetup) {
-      navigate('/setup', { state: { retrySetup } });
-    } else {
-      navigate('/setup');
-    }
+    navigate('/setup', retrySetup ? { state: { retrySetup } } : undefined);
   };
-  
+
   return (
     <section className="relative pt-[90px] pb-[30px] animate-fade-in">
       <div 

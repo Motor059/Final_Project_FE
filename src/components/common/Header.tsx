@@ -5,13 +5,16 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
 import { useInterviewStore } from '@/store/useInterviewStore';
 import { useAlertStore } from '@/store/useAlertStore';
+import { startKakaoLogin } from '@/lib/authRedirect';
+import { reportSessionId } from '@/lib/reportNavigation';
+import type { ReportResponseData } from '@/types/report';
 
-export default function Header() {
+export default function Header({ reportForLogin }: { reportForLogin?: ReportResponseData } = {}) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isLoggedIn, user, logout } = useAuthStore(); 
   const { setExitModalOpen, setExitTargetPath } = useInterviewStore();
-  const { showConfirm } = useAlertStore();
+  const { showConfirm, showAlert } = useAlertStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -31,8 +34,13 @@ export default function Header() {
   }, []);
 
   const handleKakaoLogin = () => {
-    const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${import.meta.env.VITE_KAKAO_CLIENT_ID}&redirect_uri=${import.meta.env.VITE_KAKAO_REDIRECT_URI}&response_type=code`;
-    window.location.href = KAKAO_AUTH_URL;
+    const sessionId = location.pathname === '/report'
+      ? reportSessionId(location.search, location.state?.sessionId) : undefined;
+    try {
+      startKakaoLogin(sessionId ? { sessionId, report: reportForLogin } : null);
+    } catch {
+      showAlert('로그인을 준비하지 못했습니다. 브라우저 저장 설정을 확인하고 다시 시도해 주세요.');
+    }
   };
 
   const handleNavigation = (path: string) => {
@@ -49,13 +57,12 @@ export default function Header() {
     setIsDropdownOpen(false);
     showConfirm("로그아웃 하시겠습니까?", async () => {
       await logout();
-      window.location.href = "/";
     });
   };
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 w-full h-[68px] px-[20px] md:px-[40px] flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-[#F0EFED]">
+      <header className="fixed top-0 left-0 right-0 z-[60] w-full h-[68px] px-[20px] md:px-[40px] flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-[#F0EFED]">
         <div 
           className="text-2xl font-bold tracking-tighter cursor-pointer flex items-baseline"
           onClick={() => handleNavigation('/')} 
@@ -65,13 +72,16 @@ export default function Header() {
         
         {isLoggedIn ? (
           <div className="flex items-center gap-4 relative" ref={dropdownRef}> 
-            <div 
+            <button
+              type="button"
+              aria-label="프로필 메뉴"
+              aria-expanded={isDropdownOpen}
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               title="내 정보"
               className="w-[36px] h-[36px] rounded-full bg-[#0A0A0A] text-white flex items-center justify-center text-[14px] font-semibold cursor-pointer shadow-sm hover:scale-105 transition-transform"
             >
               {user?.nickname ? user.nickname.charAt(0) : '유'}
-            </div>
+            </button>
 
             {isDropdownOpen && (
               <div className="absolute right-0 top-[48px] w-[220px] bg-white rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#F0EFED] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">

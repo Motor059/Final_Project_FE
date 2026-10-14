@@ -12,7 +12,9 @@ export default function HomePage() {
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      fetchUserInfo();
+      void fetchUserInfo().catch((error) => {
+        console.error("홈 사용자 정보 조회 실패:", error);
+      });
     }
   }, [fetchUserInfo]);
 
@@ -22,7 +24,8 @@ export default function HomePage() {
       <main className="max-w-[1080px] pt-[48px] mx-auto px-[40px] min-h-[calc(100vh-68px)] flex flex-col">
         <HeroSection 
           isLoggedIn={isLoggedIn} 
-          userName={user?.nickname} 
+          userName={user?.nickname}
+          userId={user?.id} 
           lastSetting={lastSetting} 
         />
         <FeatureSection />

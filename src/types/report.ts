@@ -14,7 +14,7 @@ export interface KeyCoaching {
 export interface RadarAxis {
   axis: string;
   label: string;
-  score: number;
+  score: number | null;
 }
 
 export interface RadarData {
@@ -42,7 +42,7 @@ export interface FeedbackCardData {
   questionId: number;
   num: number;
   shortTitle: string;
-  topicScore: number;
+  topicScore: number | null;
   question: string;
   answer: string;
   good: string;
@@ -64,9 +64,9 @@ export interface ReportResponseData {
   sessionId: number;
   meta: ReportMeta;
   keyCoaching: KeyCoaching;
-  totalScore: number;
+  totalScore: number | null;
   verdict: string;
   radar: RadarData;
   cards: FeedbackCardData[];
-  delivery: DeliveryInfo;
+  delivery?: DeliveryInfo | null;
 }

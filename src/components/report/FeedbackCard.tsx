@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { FeedbackCardData, TailQuestion } from '@/types/report';
+import { followUpLabel, scoreColor, scoreText, weakAxisLabel } from '@/lib/reportDisplay';
 
 interface FeedbackCardProps {
   data: FeedbackCardData;
@@ -26,8 +27,8 @@ export default function FeedbackCard({ data, index }: FeedbackCardProps) {
           </span>
         </div>
         <div className="flex items-center gap-[12px]">
-          <span className="text-[16px] font-semibold text-[#15803D]">
-            {data.topicScore}
+          <span className="text-[16px] font-semibold" style={{ color: scoreColor(data.topicScore) }}>
+            {scoreText(data.topicScore)}
           </span>
           {isOpen ? <ChevronUp className="w-4 h-4 text-[#A8A29E]" /> : <ChevronDown className="w-4 h-4 text-[#A8A29E]" />}
         </div>
@@ -68,7 +69,7 @@ export default function FeedbackCard({ data, index }: FeedbackCardProps) {
               <div className="mb-[24px]">
                 <div className="text-[12.5px] font-semibold text-[#57534E] mb-[8px]">약한 축</div>
                 <div className="text-[13.5px] leading-[1.55] text-[#78716C]">
-                  {data.weakAxis}
+                  {weakAxisLabel(data.weakAxis)}
                 </div>
               </div>
 
@@ -77,11 +78,11 @@ export default function FeedbackCard({ data, index }: FeedbackCardProps) {
                 <div className="text-[12.5px] font-semibold text-[#57534E] mb-[12px]">개선된 답변 예시</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
                    <div className="bg-[#FAFAF9] border border-[#F0EFED] rounded-[11px] p-[16px]">
-                      <div className="text-[11px] font-semibold text-[#9A3412] mb-[8px]">Before · 내 답변</div>
+                      <div className="text-[11px] font-semibold text-[#9A3412] mb-[8px]">내 답변</div>
                       <p className="text-[13px] leading-[1.6] text-[#78716C]">{data.improvedAnswer?.before}</p>
                    </div>
                    <div className="bg-[#0A0A0A] rounded-[11px] p-[16px]">
-                      <div className="text-[11px] font-semibold text-[#15803D] mb-[8px]">After · 이렇게</div>
+                      <div className="text-[11px] font-semibold text-[#15803D] mb-[8px]">개선된 답변</div>
                       <p className="text-[13px] leading-[1.6] text-[#E7E5E4]">{data.improvedAnswer?.after}</p>
                    </div>
                 </div>
@@ -112,9 +113,9 @@ function TailQuestionBlock({ tail }: { tail: TailQuestion }) {
 
   return (
     <div className="border-l-[2px] border-[#E7E5E4] pl-[16px] mb-[24px]">
-      <div className="flex items-center gap-[8px] mb-[12px]">
-        <span className="text-[10.5px] font-semibold text-white bg-[#78716C] px-[8px] py-[2.5px] rounded-[5px] uppercase tracking-wide">
-          {tail.strategy}
+      <div className="flex items-start gap-[8px] mb-[12px]">
+        <span className="text-[10.5px] font-semibold text-white bg-[#78716C] px-[8px] py-[2.5px] rounded-[5px] whitespace-nowrap shrink-0">
+          {followUpLabel(tail.strategy)}
         </span>
         <span className="text-[13.5px] font-medium text-[#1C1917]">{tail.question}</span>
       </div>
@@ -140,13 +141,12 @@ function TailQuestionBlock({ tail }: { tail: TailQuestion }) {
         </button>
       )}
 
-      {/* ✨ 수정: 심화 피드백 영역 API 구조 일치 */}
       {isFeedbackOpen && tail.weakAxis && tail.improvedAfter && (
         <div className="border-t border-[#F0EFED] pt-[16px] animate-in fade-in slide-in-from-top-1">
           <div className="mb-[20px]">
             <div className="text-[12px] font-semibold text-[#57534E] mb-[6px]">약한 축</div>
             <div className="text-[13px] leading-[1.55] text-[#78716C]">
-              {tail.weakAxis}
+              {weakAxisLabel(tail.weakAxis)}
             </div>
           </div>
 
@@ -155,7 +155,7 @@ function TailQuestionBlock({ tail }: { tail: TailQuestion }) {
             
             {/* After만 표시 (꼬리질문은 before가 본문 answer이므로 생략) */}
             <div className="bg-[#0A0A0A] rounded-[11px] p-[14px]">
-              <div className="text-[11px] font-semibold text-[#15803D] mb-[6px]">After · 개선된 답변</div>
+              <div className="text-[11px] font-semibold text-[#15803D] mb-[6px]">개선된 답변</div>
               <p className="text-[12.5px] leading-[1.6] text-[#E7E5E4]">{tail.improvedAfter}</p>
             </div>
           </div>

@@ -47,3 +47,28 @@ export type GenerationStatus =
 export interface GenerationStatusData {
   status: GenerationStatus;
 }
+export interface InterviewSetup {
+  companyType: CompanyType;
+  interviewStage: InterviewStage;
+  companyName: string;
+  jobRole: string;
+  jobDescription: string;
+  docId: number | null;
+}
+
+export interface PreparedInterview {
+  sessionId: number;
+  docId: number | null;
+}
+
+export interface LastInterviewSetting {
+  setup: InterviewSetup;
+  sessionId: number;
+  createdAt: string;
+}
+
+export interface SavedInterviewSetup extends InterviewSetup {
+  userId: number | null;
+  sessionId: number;
+  savedAt: number;
+}

@@ -1,11 +1,5 @@
-export type CompanyType =
-  | "BIG_TECH_SW"
-  | "SERVICE"
-  | "FINANCE_IT";
-
-export type InterviewStage =
-  | "TECHNICAL"
-  | "PERSONALITY";
+import type { CompanyType, InterviewStage } from "@/types/setup";
+export type { CompanyType, InterviewStage } from "@/types/setup";
 
 export type SessionStatus =
   | "GENERATING"
@@ -22,7 +16,7 @@ export interface SessionItem {
   jobRole: string | null;
   status: SessionStatus;
   createdAt: string;
-  totalScore?: number;
+  totalScore?: number | null;
 }
 
 export interface HistoryResponse {

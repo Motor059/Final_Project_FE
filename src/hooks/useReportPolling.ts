@@ -1,102 +1,94 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { reportApi } from '@/api/reportApi';
 import type { ReportResponseData } from '@/types/report';
 
-export const useReportPolling = (sessionId: number | undefined | null, isFromHistory: boolean | undefined) => {
+export const useReportPolling = (sessionId: number | undefined | null, isFromHistory: boolean | undefined, guestPreview?: ReportResponseData) => {
   const [data, setData] = useState<ReportResponseData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
+  const [retryCount, setRetryCount] = useState(0);
+  const retry = useCallback(() => setRetryCount((count) => count + 1), []);
+
   useEffect(() => {
-    if (!sessionId) {
-      setError("유효하지 않은 세션입니다.");
+    setData(null);
+    setError(null);
+    setIsLoading(true);
+    if (!Number.isSafeInteger(sessionId) || !sessionId || sessionId <= 0) {
+      setError('유효하지 않은 세션입니다.');
       setIsLoading(false);
       return;
     }
-
-    let isMounted = true;
-    const stopPolling = () => {
-      if (pollingTimerRef.current) {
-        clearInterval(pollingTimerRef.current);
-        pollingTimerRef.current = null;
-      }
+    if (guestPreview?.sessionId === sessionId) {
+      setData(guestPreview);
+      setIsLoading(false);
+      return;
+    }
+    const sid = sessionId;
+    const controller = new AbortController();
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let deadline: ReturnType<typeof setTimeout> | null = null;
+    const isActive = () => !stopped && !controller.signal.aborted;
+    const stop = () => {
+      stopped = true;
+      if (timer !== null) clearTimeout(timer);
+      if (deadline !== null) clearTimeout(deadline);
+      controller.abort();
     };
-
-    // 최종 리포트 조회
-    const fetchFinalReport = async (sid: number) => {
+    const fail = (message: string) => {
+      if (!isActive()) return;
+      setError(message);
+      setIsLoading(false);
+      stop();
+    };
+    const fetchFinalReport = async () => {
       try {
-        const reportData = await reportApi.getFinalReport(sid);
-        if (isMounted) {
-          setData(reportData);
-          setIsLoading(false);
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          setError("결과 리포트를 불러오는데 실패했습니다.");
-          setIsLoading(false);
-        }
+        const result = await reportApi.getFinalReport(sid, controller.signal);
+        if (!isActive()) return;
+        setData(result);
+        setIsLoading(false);
+        stop();
+      } catch {
+        fail('결과 리포트를 불러오지 못했습니다. 다시 불러오기를 눌러 주세요.');
       }
     };
-
-    // 상태 체크 로직 (폴링)
-    const checkStatus = async (sid: number) => {
+    const checkStatus = async () => {
+      if (!isActive()) return;
       try {
-        const statusData = await reportApi.getFeedbackStatus(sid);
-        
-        if (statusData.status === 'COMPLETED') {
-          stopPolling();
-          if (isMounted) fetchFinalReport(sid);
-        } else if (statusData.status === 'FAILED') {
-          stopPolling();
-          if (isMounted) {
-            setError("채점 과정에서 문제가 발생했습니다. (FAILED)");
-            setIsLoading(false);
-          }
+        const status = await reportApi.getFeedbackStatus(sid, controller.signal);
+        if (!isActive()) return;
+        if (status.status === 'COMPLETED') {
+          await fetchFinalReport();
+        } else if (status.status === 'FAILED') {
+          fail('채점에 실패했습니다. 다시 불러와 상태를 확인하거나 새 면접을 시작해 주세요.');
+        } else {
+          timer = setTimeout(() => { void checkStatus(); }, 3000);
         }
-      } catch (err) {
-        stopPolling();
-        if (isMounted) {
-          setError("상태 조회 중 오류가 발생했습니다.");
-          setIsLoading(false);
-        }
+      } catch {
+        fail('채점 상태를 확인하지 못했습니다. 다시 불러오기를 눌러 주세요.');
       }
     };
-
-    const startPolling = (sid: number) => {
-      checkStatus(sid);
-      pollingTimerRef.current = setInterval(() => checkStatus(sid), 3000); // 3초 간격 폴링
-    };
-
-    // 최초 채점 시작 요청
-    const startProcess = async () => {
+    const start = async () => {
       if (isFromHistory) {
-        fetchFinalReport(sessionId);
+        await fetchFinalReport();
         return;
       }
-      
       try {
-        setIsLoading(true);
-        await reportApi.requestFeedback(sessionId);
-        startPolling(sessionId);
-      } catch (err: any) {
-        if (err?.response?.status === 409) {
-          startPolling(sessionId);
-        } else {
-          setError("채점 요청 중 오류가 발생했습니다.");
-          setIsLoading(false);
+        await reportApi.requestFeedback(sid);
+      } catch (failure) {
+        if (!isActive()) return;
+        if (!isAxiosError(failure) || failure.response?.status !== 409) {
+          fail('채점 요청을 완료하지 못했습니다. 다시 불러오기를 눌러 주세요.');
+          return;
         }
       }
+      if (isActive()) await checkStatus();
     };
+    deadline = setTimeout(() => fail('결과 분석이 지연되고 있습니다. 다시 불러오기로 상태를 확인해 주세요.'), 5 * 60 * 1000);
+    void start();
+    return stop;
+  }, [sessionId, isFromHistory, retryCount, guestPreview]);
 
-    startProcess();
-
-    return () => {
-      isMounted = false;
-      stopPolling();
-    };
-  }, [sessionId, isFromHistory]);
-
-  return { data, isLoading, error };
+  return { data, isLoading, error, retry };
 };

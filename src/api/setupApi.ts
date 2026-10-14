@@ -8,10 +8,11 @@ import type {
 } from "@/types/setup";
 
 export const getInterviewOptions =
-  async (): Promise<InterviewOptionsData> => {
+  async (signal?: AbortSignal): Promise<InterviewOptionsData> => {
     const response =
       await api.get(
         "/api/v1/interview-options",
+        { signal },
       );
 
     return response.data.data;
@@ -31,17 +32,19 @@ export const createSession = async (
 
 export const getGenerationStatus = async (
   sessionId: number,
+  signal?: AbortSignal,
 ): Promise<GenerationStatusData> => {
   const response =
     await api.get(
       `/api/v1/sessions/${sessionId}/generation-status`,
+      { signal },
     );
 
   return response.data.data;
 };
 
 export const startInterview = async (
-  setupData: any,
+  setupData: CreateSessionRequest,
   documentFile: File | null,
   selectedDocId: number | null
 ): Promise<number> => {

@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/api/authApi';
+import LoadingState from '@/components/common/LoadingState';
 import { useAuthStore } from '@/store/authStore';
+import { useAlertStore } from '@/store/useAlertStore';
+import { getAuthVersion } from '@/lib/authStorage';
+import { clearReportLoginReturn, consumeReportLoginReturn, startKakaoLogin } from '@/lib/authRedirect';
+import { reportPath } from '@/lib/reportNavigation';
+import { isAxiosError, isCancel } from 'axios';
 
 export default function KakaoCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { fetchUserInfo } = useAuthStore();
+  const completeLogin = useAuthStore((state) => state.completeLogin);
+  const showAlert = useAlertStore((state) => state.showAlert);
   
   const code = searchParams.get('code');
   
@@ -16,6 +23,7 @@ export default function KakaoCallback() {
 
   const processLogin = async (termsAgreed: boolean) => {
     if (!code) return;
+    const version = getAuthVersion();
     
     try {
       const data = await authApi.kakaoLogin({ 
@@ -23,15 +31,25 @@ export default function KakaoCallback() {
         termsAgreed 
       });
 
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-
-      await fetchUserInfo();
-      navigate('/', { replace: true });
+      if (version !== getAuthVersion()) return;
+      completeLogin(data);
+      const target = consumeReportLoginReturn();
+      if (target) {
+        navigate(reportPath(target.sessionId), {
+          replace: true,
+          state: { sessionId: target.sessionId, isFromHistory: true, guestPreview: target.report },
+        });
+      } else {
+        navigate('/', { replace: true });
+      }
+      if (data.isNewUser) showAlert('회원가입이 완료되었습니다.');
       
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (isCancel(error) || version !== getAuthVersion()) return;
       console.error("로그인 실패 상세 원인:", error);
-      const backendCode = error.response?.data?.code || error.response?.status;
+      const backendCode = isAxiosError<{ code?: number | string }>(error)
+        ? Number(error.response?.data?.code ?? error.response?.status)
+        : undefined;
       if (backendCode === 400) {
         setShowTerms(true);
       } 
@@ -42,7 +60,11 @@ export default function KakaoCallback() {
   };
 
   useEffect(() => {
-    if (!code || isProcessed.current) return;
+    if (!code) {
+      setErrorMsg('카카오 로그인이 취소되었거나 인증 정보를 받지 못했습니다.');
+      return;
+    }
+    if (isProcessed.current) return;
     isProcessed.current = true;
 
     const isPendingTerms = localStorage.getItem('pendingTerms') === 'true';
@@ -58,8 +80,11 @@ export default function KakaoCallback() {
   const handleAgreeAndRestart = () => {
     localStorage.setItem('pendingTerms', 'true');
     
-    const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${import.meta.env.VITE_KAKAO_CLIENT_ID}&redirect_uri=${import.meta.env.VITE_KAKAO_REDIRECT_URI}&response_type=code`;
-    window.location.href = KAKAO_AUTH_URL;
+    try {
+      startKakaoLogin(null, true);
+    } catch {
+      setErrorMsg('로그인을 다시 시작하지 못했습니다. 다시 시도해 주세요.');
+    }
   };
 
   if (errorMsg) {
@@ -67,7 +92,7 @@ export default function KakaoCallback() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFAF9]">
         <h2 className="text-[20px] font-semibold text-[#1C1917] mb-4">{errorMsg}</h2>
         <button 
-          onClick={() => navigate('/', { replace: true })}
+          onClick={() => { clearReportLoginReturn(); navigate('/', { replace: true }); }}
           className="px-6 py-3 bg-[#0A0A0A] text-white rounded-xl font-medium"
         >
           홈으로 돌아가기
@@ -97,8 +122,7 @@ export default function KakaoCallback() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFAF9]">
-      <div className="w-8 h-8 border-[3px] border-[#E7E5E4] border-t-[#0A0A0A] rounded-full animate-spin mb-4" />
-      <p className="text-[15px] font-medium text-[#78716C]">카카오 로그인 중입니다...</p>
+      <LoadingState title="카카오 로그인 중입니다" description="로그인 정보를 확인하고 있어요." className="px-6" />
     </div>
   );
 }

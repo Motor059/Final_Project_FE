@@ -1,91 +1,130 @@
-import axios from 'axios';
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { clearAuthStorage, getAuthVersion } from '@/lib/authStorage';
+import type { TokenRefreshResponse } from './authApi';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const REQUEST_TIMEOUT = 180000;
+
+interface ApiErrorData {
+  code?: number | string;
+  message?: string;
+  data?: { nextAction?: { type?: string } };
+}
+type RetryRequest = InternalAxiosRequestConfig & { _retry?: boolean; _authVersion?: number };
+let refreshOperation: { version: number; promise: Promise<TokenRefreshResponse> } | null = null;
+
+function isAuthRequest(url?: string) {
+  return url?.includes('/auth/kakao/login') || url?.includes('/auth/token/refresh');
+}
+
+function changedSession() {
+  return new axios.CanceledError('로그인 상태가 변경되어 이전 요청을 취소했습니다.');
+}
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 180000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: REQUEST_TIMEOUT,
+  headers: { 'Content-Type': 'application/json' },
 });
 
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+function expireSession() {
+  clearAuthStorage();
+  window.location.href = '/';
+}
+
+function refreshTokens(version: number): Promise<TokenRefreshResponse> {
+  if (version !== getAuthVersion()) return Promise.reject(changedSession());
+  if (refreshOperation?.version === version) return refreshOperation.promise;
+  const refreshToken = localStorage.getItem('refreshToken');
+  const promise: Promise<TokenRefreshResponse> = axios.post(
+    `${API_BASE_URL}/api/v1/auth/token/refresh`,
+    { refreshToken },
+    { timeout: REQUEST_TIMEOUT, headers: { 'Content-Type': 'application/json' } },
+  ).then((response) => {
+    const tokens: TokenRefreshResponse | undefined = response.data?.data;
+    if (!tokens?.accessToken || !tokens.refreshToken) {
+      throw new Error('토큰 갱신 응답이 올바르지 않습니다.');
     }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+    if (version !== getAuthVersion() || localStorage.getItem('refreshToken') !== refreshToken) {
+      throw changedSession();
+    }
+    localStorage.setItem('accessToken', tokens.accessToken);
+    localStorage.setItem('refreshToken', tokens.refreshToken);
+    return tokens;
+  }).catch((error: unknown) => {
+    const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+    if (
+      (status === 400 || status === 401 || status === 403) &&
+      version === getAuthVersion() &&
+      localStorage.getItem('refreshToken') === refreshToken
+    ) expireSession();
+    throw error;
+  }).finally(() => {
+    if (refreshOperation?.promise === promise) refreshOperation = null;
+  });
+  refreshOperation = { version, promise };
+  return promise;
+}
+
+api.interceptors.request.use((config) => {
+  const request = config as RetryRequest;
+  if (request._authVersion !== undefined && request._authVersion !== getAuthVersion()) throw changedSession();
+  request._authVersion = getAuthVersion();
+  const token = localStorage.getItem('accessToken');
+  if (isAuthRequest(config.url)) config.headers.delete('Authorization');
+  else if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    if (!error.response) {
-      console.error("네트워크 에러 또는 CORS 문제입니다. 백엔드 에러 응답에 CORS 허용 설정이 되어있는지 확인하세요.");
-      return Promise.reject(error);
+  (response) => {
+    const version = (response.config as RetryRequest)._authVersion;
+    if (version !== undefined && version !== getAuthVersion()) return Promise.reject(changedSession());
+    return response;
+  },
+  async (error: AxiosError<ApiErrorData>) => {
+    const originalRequest = error.config as RetryRequest | undefined;
+    if (originalRequest?._authVersion !== undefined && originalRequest._authVersion !== getAuthVersion()) {
+      return Promise.reject(changedSession());
     }
-
+    if (!error.response) return Promise.reject(error);
     const status = error.response.status;
     const errorData = error.response.data;
-    const backendCode = errorData?.code || status;
-
-    const isLoginRequest = originalRequest.url?.includes('/auth/kakao/login');
-
-    if (backendCode === 401 && !originalRequest._retry && !isLoginRequest) {
-      originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('refreshToken');
-      
-      if (!refreshToken) {
-         console.warn("리프레시 토큰이 없습니다. 강제 로그아웃 됩니다.");
-         localStorage.removeItem('accessToken');
-         window.location.href = '/';
-         return Promise.reject(error);
+    const isUnauthorized = status === 401 || Number(errorData?.code) === 401;
+    if (isUnauthorized && originalRequest && !isAuthRequest(originalRequest.url)) {
+      const version = originalRequest._authVersion ?? getAuthVersion();
+      const authorization = originalRequest.headers.Authorization;
+      const accessToken = localStorage.getItem('accessToken');
+      if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ') || !accessToken) {
+        return Promise.reject(error);
       }
-
-      try {
-        const refreshResponse = await axios.post(
-          `${API_BASE_URL}/api/v1/auth/token/refresh`,
-          { refreshToken },
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-
-        const { accessToken: newAccess, refreshToken: newRefresh } = refreshResponse.data.data;
-        
-        localStorage.setItem('accessToken', newAccess);
-        localStorage.setItem('refreshToken', newRefresh);
-        
-        originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+      if (originalRequest._retry) {
+        if (authorization === `Bearer ${accessToken}`) expireSession();
+        return Promise.reject(error);
+      }
+      originalRequest._retry = true;
+      if (authorization !== `Bearer ${accessToken}`) {
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
-        
+      }
+      if (!localStorage.getItem('refreshToken')) {
+        expireSession();
+        return Promise.reject(error);
+      }
+      let tokens: TokenRefreshResponse;
+      try {
+        tokens = await refreshTokens(version);
       } catch (refreshError) {
-        console.error("인증이 완전히 만료되었습니다. 다시 로그인해주세요.");
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/';
         return Promise.reject(refreshError);
       }
+      if (version !== getAuthVersion()) return Promise.reject(changedSession());
+      originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
+      return api(originalRequest);
     }
-
-    if (status === 400 || status === 502) {
-      if (errorData.data?.nextAction?.type === 'RETRY_INPUT') {
-        return Promise.reject({ type: 'RETRY_INPUT', message: errorData.message });
-      }
-    } else if (status === 422) {
-      return Promise.reject({ type: 'TOO_SHORT', message: errorData.message });
-    } else if (status === 403) {
-      console.error("권한이 없습니다.");
-    } else if (status === 404) {
-      console.error("요청하신 데이터를 찾을 수 없습니다.");
-    } else if (status === 409) {
-      console.error("상태 충돌이 발생했습니다.");
+    if ((status === 400 || status === 502) && errorData?.data?.nextAction?.type === 'RETRY_INPUT') {
+      return Promise.reject({ type: 'RETRY_INPUT', message: errorData.message });
     }
-    
+    if (status === 422) return Promise.reject({ type: 'TOO_SHORT', message: errorData?.message });
     return Promise.reject(error);
-  }
+  },
 );
