@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+import { useAlertStore } from "@/store/useAlertStore";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,12 +9,48 @@ import { useNavigate } from "react-router-dom";
 
 export default function ActionController() {
   const { 
-    phase, inputMode, setInputMode, 
+    phase, inputMode, setInputMode, sessionId, currentQuestion, recordingAttempt, 
     answerText, setAnswerText, timeLeft, 
     submitAnswerAndNext, isSubmitting, questionError, retryQuestion, isSessionUnavailable, resetInterview,
-    skipToNextMain, isSkipping, skipError, isPaused, audioStatus, audioError, pendingAnswer, answerError, restartAnswer,
+    skipCurrentQuestion, isSkipping, skipError, isPaused, audioStatus, audioError, pendingAnswer, answerError, restartAnswer,
   } = useInterviewStore();
   const navigate = useNavigate();
+  const showConfirm = useAlertStore((state) => state.showConfirm);
+  const isAlertOpen = useAlertStore((state) => state.isOpen);
+  const confirmedTextSwitch = useRef<{
+    sessionId: number;
+    questionId: number;
+    recordingAttempt: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const request = confirmedTextSwitch.current;
+    if (!request) return;
+    const current = useInterviewStore.getState();
+    if (current.sessionId !== request.sessionId || current.currentQuestion?.questionId !== request.questionId ||
+        current.recordingAttempt !== request.recordingAttempt || current.phase !== 'RECORDING' ||
+        current.inputMode !== 'AUDIO' || current.isSubmitting || current.isFinished || current.questionError || current.isSessionUnavailable) {
+      confirmedTextSwitch.current = null;
+      return;
+    }
+    if (isAlertOpen || current.isPaused || current.isExitModalOpen) return;
+    confirmedTextSwitch.current = null;
+    setInputMode('TEXT');
+  }, [isAlertOpen, isPaused, phase, inputMode, isSubmitting, questionError, isSessionUnavailable, sessionId, currentQuestion, recordingAttempt, setInputMode]);
+
+  const handleTextMode = () => {
+    const current = useInterviewStore.getState();
+    if (current.phase !== 'RECORDING' || current.inputMode !== 'AUDIO' || current.isSubmitting || current.isPaused ||
+        current.isFinished || current.isExitModalOpen || useAlertStore.getState().isOpen || !current.sessionId || !current.currentQuestion) return;
+    const request = {
+      sessionId: current.sessionId,
+      questionId: current.currentQuestion.questionId,
+      recordingAttempt: current.recordingAttempt,
+    };
+    showConfirm('텍스트 답변으로 전환할까요?\n이번 면접의 남은 질문도 텍스트로 답변하게 되며, 음성 답변으로 돌아갈 수 없어요.', () => {
+      confirmedTextSwitch.current = request;
+    });
+  };
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -33,6 +71,21 @@ export default function ActionController() {
         ) : (
           <Button disabled={isSubmitting || isPaused} onClick={() => { void retryQuestion(); }}>면접 다시 불러오기</Button>
         )}
+      </div>
+    );
+  }
+
+  if (timeLeft === 0 && isSkipping) {
+    return <LoadingState inline title="답변 시간이 끝나 다음 질문으로 이동하고 있어요" className="py-8" />;
+  }
+
+  if (timeLeft === 0 && skipError) {
+    return (
+      <div className="w-full max-w-3xl flex flex-col items-center gap-4 text-center" role="alert">
+        <p className="text-sm text-[#78716C]">{skipError}</p>
+        <Button disabled={isSubmitting || isPaused} onClick={() => { void skipCurrentQuestion('TIMEOUT'); }}>
+          {isSubmitting ? <span className="inline-flex items-center gap-2"><LoadingIndicator size="sm" />다음 질문 확인 중</span> : '다음 질문으로 이동 다시 시도'}
+        </Button>
       </div>
     );
   }
@@ -92,7 +145,7 @@ export default function ActionController() {
           size="lg" 
           className="px-8 py-6 rounded-xl text-base font-semibold shadow-sm bg-[#111111] hover:bg-black transition-colors" 
           onClick={handleSubmit}
-          disabled={isSubmitting || isPaused || (inputMode === 'AUDIO' && audioStatus !== 'READY')}
+          disabled={isSubmitting || isPaused || timeLeft === 0 || (inputMode === 'AUDIO' && audioStatus !== 'READY')}
         >
           {isSubmitting ? (
             <span className="inline-flex items-center gap-2"><LoadingIndicator size="sm" />{isSkipping ? "질문 건너뛰는 중" : "답변 제출 중"}</span>
@@ -105,7 +158,7 @@ export default function ActionController() {
         {inputMode === "AUDIO" ? (
           <button
             className="underline underline-offset-4 hover:text-black transition-colors disabled:opacity-50"
-            onClick={() => setInputMode("TEXT")}
+            onClick={handleTextMode}
             disabled={isSubmitting || isPaused}
           >
             텍스트로 입력하기
@@ -115,7 +168,7 @@ export default function ActionController() {
         )}
         <button 
           className="hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={skipToNextMain}
+          onClick={() => { void skipCurrentQuestion(); }}
           disabled={isSubmitting || isPaused}
         >
           {isSkipping ? "질문 건너뛰는 중..." : "이 질문 건너뛰기 →"}

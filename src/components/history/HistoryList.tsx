@@ -1,4 +1,4 @@
-import { scoreText } from "@/lib/reportDisplay";
+import { scoreText, scoreValue } from "@/lib/reportDisplay";
 
 export interface InterviewHistoryItem {
   id: number;
@@ -6,7 +6,7 @@ export interface InterviewHistoryItem {
   company: string;
   role: string;
   stage: string;
-  score?: number | null;
+  totalScore: number | null;
 }
 
 interface HistoryListProps {
@@ -74,7 +74,10 @@ export default function HistoryList({
                 </p>
 
                 <p className="mt-1 text-[22px] font-semibold leading-none text-foreground">
-                   {scoreText(item.score)}
+                  {scoreText(item.totalScore)}
+                  {scoreValue(item.totalScore) !== null && (
+                    <span className="ml-1 text-[13px] font-medium text-muted-foreground">점</span>
+                  )}
                 </p>
               </div>
 

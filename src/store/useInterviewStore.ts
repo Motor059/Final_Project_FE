@@ -68,7 +68,7 @@ interface InterviewState {
   fetchNextQuestion: (preserveCurrentAnswer?: boolean) => Promise<void>;
   retryQuestion: () => Promise<void>;
   submitAnswerAndNext: (retryPending?: boolean) => Promise<void>;
-  skipToNextMain: () => Promise<void>;
+  skipCurrentQuestion: (reason?: 'MANUAL' | 'TIMEOUT') => Promise<void>;
   cancelCurrentSession: () => Promise<void>;
 }
 
@@ -264,7 +264,7 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
         currentQuestion: questionData,
         currentMainIndex: nextMainIndex,
         phase: 'ASKING',
-        inputMode: 'AUDIO',
+        inputMode: get().inputMode,
         answerText: '',
         timeLeft: ANSWER_SECONDS,
         isSubmitting: false,
@@ -317,7 +317,7 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
     const { sessionId, currentQuestion, isSubmitting, isFinished, isPaused, isSessionUnavailable } = get();
     if (!sessionId || isSubmitting || isFinished || isPaused || isSessionUnavailable) return;
     set({ phase: 'THINKING', isSubmitting: true, isSkipping: false });
-    if (currentQuestion) await get().fetchNextQuestion(!!get().pendingAnswer);
+    if (currentQuestion) await get().fetchNextQuestion(!!get().pendingAnswer || (get().timeLeft === 0 && !!get().skipError));
     else await get().startAndFetchFirstQuestion(sessionId);
   },
 
@@ -326,8 +326,11 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
     const { sessionId, currentQuestion, inputMode, answerText, stopAudioRecording } = state;
     if (!sessionId || !currentQuestion || state.isSubmitting || state.isFinished || state.isPaused || state.isExitModalOpen || useAlertStore.getState().isOpen) return;
     if (retryPending ? !state.pendingAnswer || !!state.questionError : state.phase !== 'RECORDING') return;
+    if (!retryPending && state.timeLeft === 0) {
+      await get().skipCurrentQuestion('TIMEOUT');
+      return;
+    }
     if (!retryPending && inputMode === 'TEXT' && !answerText.trim()) {
-      if (state.timeLeft === 0) set({ timeLeft: ANSWER_SECONDS });
       useAlertStore.getState().showAlert('답변이 너무 짧습니다. 내용을 입력해 주세요.');
       return;
     }
@@ -394,9 +397,10 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
     }
   },
 
-  skipToNextMain: async () => {
+  skipCurrentQuestion: async (reason = 'MANUAL') => {
     const { currentQuestion, sessionId, isSubmitting, isFinished, isSessionUnavailable, questionError, phase, isPaused } = get();
-    if (!sessionId || !currentQuestion || isSubmitting || isFinished || isSessionUnavailable || questionError || isPaused || phase !== 'RECORDING') return;
+    if (!sessionId || !currentQuestion || isSubmitting || isFinished || isSessionUnavailable || questionError || isPaused || get().isExitModalOpen || useAlertStore.getState().isOpen || phase !== 'RECORDING') return;
+    if (reason === 'TIMEOUT' && get().timeLeft !== 0) return;
     const version = interviewVersion;
     set({ isSubmitting: true, isSkipping: true, skipError: null });
     try {
@@ -412,9 +416,11 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
       if (version !== interviewVersion || get().sessionId !== sessionId) return;
       const status = isAxiosError(error) ? error.response?.status : undefined;
       console.error('질문 스킵 실패:', { sessionId, questionId: currentQuestion.questionId, status });
-      const message = status !== undefined && status >= 500
-        ? `스킵 요청에 서버 오류(${status})가 발생했습니다. 현재 질문에 계속 답변하거나 잠시 후 다시 시도해 주세요.`
-        : `질문을 건너뛰지 못했습니다. ${errorMessage(error, '잠시 후 다시 시도해 주세요.')}`;
+      const message = get().timeLeft === 0
+        ? `답변 시간이 끝났지만 다음 질문으로 이동하지 못했습니다. ${errorMessage(error, '잠시 후 다시 시도해 주세요.')} 아래 버튼으로 다시 시도해 주세요.`
+        : status !== undefined && status >= 500
+          ? `스킵 요청에 서버 오류(${status})가 발생했습니다. 현재 질문에 계속 답변하거나 잠시 후 다시 시도해 주세요.`
+          : `질문을 건너뛰지 못했습니다. ${errorMessage(error, '잠시 후 다시 시도해 주세요.')}`;
       set({ skipError: message });
       await get().fetchNextQuestion(true);
     }
