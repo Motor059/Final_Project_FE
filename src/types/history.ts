@@ -5,6 +5,7 @@ export type SessionStatus =
   | "GENERATING"
   | "READY"
   | "IN_PROGRESS"
+  | "ANALYZING"
   | "COMPLETED"
   | "FAILED";
 

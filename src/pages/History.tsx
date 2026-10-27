@@ -33,7 +33,7 @@ export default function History() {
       company: session.companyName ?? companyTypeLabel(session.companyType),
       role: session.jobRole ?? "직무 미지정",
       stage: interviewStageLabel(session.interviewStage),
-      score: session.totalScore,
+      totalScore: session.totalScore ?? null,
     })) ?? [];
 
   const handleSelectHistory = (id: number) => {

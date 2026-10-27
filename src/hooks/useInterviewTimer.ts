@@ -2,13 +2,13 @@ import { useEffect } from 'react';
 import { useInterviewStore } from '@/store/useInterviewStore';
 
 export function useInterviewTimer() {
-  const { phase, timeLeft, isSubmitting, isFinished, isPaused, inputMode, audioStatus, setTimeLeft, submitAnswerAndNext } = useInterviewStore();
+  const { phase, timeLeft, isSubmitting, isFinished, isPaused, inputMode, audioStatus, skipError, setTimeLeft, skipCurrentQuestion } = useInterviewStore();
 
   useEffect(() => {
     if (phase !== 'RECORDING' || isSubmitting || isFinished || isPaused || (inputMode === 'AUDIO' && audioStatus !== 'READY')) return;
     if (timeLeft === 0) {
       const current = useInterviewStore.getState();
-      if (current.timeLeft === 0 && !current.isSubmitting) void submitAnswerAndNext();
+      if (current.timeLeft === 0 && !current.isSubmitting && !current.skipError) void skipCurrentQuestion('TIMEOUT');
       return;
     }
     const timer = setInterval(() => {
@@ -18,5 +18,5 @@ export function useInterviewTimer() {
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [phase, timeLeft, isSubmitting, isFinished, isPaused, inputMode, audioStatus, setTimeLeft, submitAnswerAndNext]);
+  }, [phase, timeLeft, isSubmitting, isFinished, isPaused, inputMode, audioStatus, skipError, setTimeLeft, skipCurrentQuestion]);
 }
