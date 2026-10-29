@@ -2,6 +2,7 @@ import { scoreText, scoreValue } from "@/lib/reportDisplay";
 
 export interface InterviewHistoryItem {
   id: number;
+  interviewType?: "QA" | "PT";
   date: string;
   company: string;
   role: string;
@@ -12,17 +13,19 @@ export interface InterviewHistoryItem {
 interface HistoryListProps {
   items: InterviewHistoryItem[];
   onSelect: (id: number) => void;
+  emptyMessage?: string;
 }
 
 export default function HistoryList({
   items,
   onSelect,
+  emptyMessage,
 }: HistoryListProps) {
   if (items.length === 0) {
     return (
       <section className="rounded-xl border border-dashed border-border bg-muted/40 px-6 py-14 text-center">
         <p className="text-[14px] font-medium text-foreground">
-          아직 저장된 면접 기록이 없어요.
+          {emptyMessage ?? "아직 저장된 면접 기록이 없어요."}
         </p>
 
         <p className="mt-2 text-[12.5px] text-muted-foreground">
@@ -54,9 +57,15 @@ export default function HistoryList({
             ].join(" ")}
           >
             <div className="min-w-0">
-              <p className="text-[12px] font-medium text-muted-foreground">
-                {item.date}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-[12px] font-medium text-muted-foreground">
+                  {item.date}
+                </p>
+
+                <span className="rounded-md bg-[#F6F6F4] px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                  {item.interviewType === "PT" ? "PT" : "QA"}
+                </span>
+              </div>
 
               <p className="mt-1.5 truncate text-[15px] font-semibold text-foreground">
                 {item.company} · {item.role}
@@ -76,7 +85,9 @@ export default function HistoryList({
                 <p className="mt-1 text-[22px] font-semibold leading-none text-foreground">
                   {scoreText(item.totalScore)}
                   {scoreValue(item.totalScore) !== null && (
-                    <span className="ml-1 text-[13px] font-medium text-muted-foreground">점</span>
+                    <span className="ml-1 text-[13px] font-medium text-muted-foreground">
+                      점
+                    </span>
                   )}
                 </p>
               </div>
