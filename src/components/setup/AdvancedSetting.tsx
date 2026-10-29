@@ -13,10 +13,12 @@ interface AdvancedSettingProps {
   jobRoleOptions: string[];
   companyName: string;
   jobDescription: string;
+  githubUrl: string;
   documentFile: File | null;
   onJobRoleChange: (value: string) => void;
   onCompanyNameChange: (value: string) => void;
   onJobDescriptionChange: (value: string) => void;
+  onGithubUrlChange: (value: string) => void;
   onDocumentFileChange: (file: File | null) => void;
   documents?: { docId: number; fileName: string; createdAt: string }[];
   selectedDocId: number | null;
@@ -29,10 +31,12 @@ export default function AdvancedSetting({
   jobRoleOptions,
   companyName,
   jobDescription,
+  githubUrl,
   documentFile,
   onJobRoleChange,
   onCompanyNameChange,
   onJobDescriptionChange,
+  onGithubUrlChange,
   onDocumentFileChange,
   documents = [],
   selectedDocId,
@@ -154,7 +158,28 @@ export default function AdvancedSetting({
                 className="resize-y"
               />
             </div>
+            <div>
+              <label
+                htmlFor="github-url"
+                className="mb-2 block text-[13.5px] font-semibold"
+              >
+                GitHub 저장소 URL (선택)
+              </label>
 
+              <Input
+                id="github-url"
+                type="url"
+                value={githubUrl}
+                onChange={(event) =>
+                  onGithubUrlChange(event.target.value)
+                }
+                placeholder="https://github.com/username/repository"
+              />
+
+              <p className="mt-2 text-[11.5px] text-muted-foreground">
+                프로젝트 저장소 주소가 있다면 입력해 주세요.
+              </p>
+            </div>
             <div>
               <div className="mb-2">
                 <p className="text-[13.5px] font-semibold">지원 서류</p>

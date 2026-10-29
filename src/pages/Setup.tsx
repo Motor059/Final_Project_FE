@@ -17,6 +17,8 @@ import type {
   CompanyType,
   InterviewStage,
   InterviewSetup,
+  InterviewType,
+  PrepMinutes,
 } from "@/types/setup";
 
 import { parseInterviewSetup, saveInterviewSetup } from '@/lib/interviewSetup';
@@ -48,22 +50,52 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
   } = useSetup();
 
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const { documents, isLoading: isDocumentsLoading, isError: isDocumentsError } = useDocuments(isLoggedIn);
 
-  const [companyType, setCompanyType] = useState<CompanyType | null>(initialSetup?.companyType || null);
-  const [interviewStage, setInterviewStage] = useState<InterviewStage | null>(initialSetup?.interviewStage || null);
+  const {
+    documents,
+    isLoading: isDocumentsLoading,
+    isError: isDocumentsError,
+  } = useDocuments(isLoggedIn);
+
+  const [companyType, setCompanyType] = useState<CompanyType | null>(
+    initialSetup?.companyType || null
+  );
+
+  const [interviewStage, setInterviewStage] = useState<InterviewStage | null>(
+    initialSetup?.interviewStage || null
+  );
+
+  const [interviewType, setInterviewType] = useState<InterviewType>(
+    initialSetup?.interviewType ?? "QA"
+  );
+
+  const [prepMinutes, setPrepMinutes] = useState<PrepMinutes>(
+    initialSetup?.prepMinutes ?? 20
+  );
 
   const [jobRole, setJobRole] = useState(initialSetup?.jobRole || "");
   const [companyName, setCompanyName] = useState(initialSetup?.companyName || "");
-  const [jobDescription, setJobDescription] = useState(initialSetup?.jobDescription || "");
-  
+  const [jobDescription, setJobDescription] = useState(
+    initialSetup?.jobDescription || ""
+  );
+  const [githubUrl, setGithubUrl] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [selectedDocId, setSelectedDocId] = useState<number | null>(initialSetup?.docId ?? null);
 
-  const isRestoringDocument = selectedDocId !== null && isLoggedIn && isDocumentsLoading;
-  const availableDocId = isLoggedIn && !isDocumentsError && documents.some((document) => document.docId === selectedDocId)
-    ? selectedDocId : null;
-  const isPreviousDocumentUnavailable = selectedDocId !== null && !isRestoringDocument && availableDocId === null;
+  const isRestoringDocument =
+    selectedDocId !== null && isLoggedIn && isDocumentsLoading;
+
+  const availableDocId =
+    isLoggedIn &&
+      !isDocumentsError &&
+      documents.some((document) => document.docId === selectedDocId)
+      ? selectedDocId
+      : null;
+
+  const isPreviousDocumentUnavailable =
+    selectedDocId !== null &&
+    !isRestoringDocument &&
+    availableDocId === null;
 
   const canStart = useMemo(
     () =>
@@ -89,6 +121,8 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
         {
           companyType,
           interviewStage,
+          interviewType,
+          ...(interviewType === "PT" ? { prepMinutes } : {}),
           companyName: companyName.trim() || undefined,
           jobRole: jobRole.trim() || undefined,
           jobDescription: jobDescription.trim() || undefined,
@@ -107,6 +141,8 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
         saveInterviewSetup({
           companyType,
           interviewStage,
+          interviewType,
+          prepMinutes,
           companyName: companyName.trim(),
           jobRole: jobRole.trim(),
           jobDescription: jobDescription.trim(),
@@ -114,7 +150,18 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
         }, sessionId, auth.isLoggedIn ? auth.user?.id ?? null : null);
       }
 
-      navigate("/interview", { state: { sessionId } });
+      sessionStorage.setItem("interviewSessionId", String(sessionId));
+
+      if (interviewType === "PT") {
+        sessionStorage.setItem("ptPreparationSessionId", String(sessionId));
+      } else {
+        sessionStorage.removeItem("ptPreparationSessionId");
+      }
+
+      navigate(
+        interviewType === "PT" ? "/pt/preparation" : "/interview",
+        { state: { sessionId } },
+      );
     } catch (error) {
       if (!mountedRef.current || (error instanceof DOMException && error.name === "AbortError")) return;
       console.error("모의면접 시작 실패:", error);
@@ -169,6 +216,35 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
             <section>
               <div className="mb-4">
                 <h2 className="text-[14px] font-semibold text-foreground">
+                  면접 유형
+                </h2>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  연습하고 싶은 면접 방식을 선택해 주세요.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <SelectionCard
+                  title="일반 면접"
+                  description="질문에 답변하는 일반적인 모의면접"
+                  selected={interviewType === "QA"}
+                  onClick={() => setInterviewType("QA")}
+                />
+
+                <SelectionCard
+                  title="PT 면접"
+                  description="주제를 준비하고 발표하는 기술 PT 면접"
+                  selected={interviewType === "PT"}
+                  onClick={() => {
+                    setInterviewType("PT");
+                    setInterviewStage("TECHNICAL");
+                  }}
+                />
+              </div>
+            </section>
+            <section>
+              <div className="mb-4">
+                <h2 className="text-[14px] font-semibold text-foreground">
                   기업 유형
                 </h2>
                 <p className="mt-1 text-[12.5px] text-muted-foreground">
@@ -200,26 +276,58 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                {options.stages?.map((item) => (
-                  <SelectionCard
-                    key={item.code}
-                    title={item.label}
-                    selected={interviewStage === item.code}
-                    onClick={() => setInterviewStage(item.code)}
-                  />
-                ))}
+                {options.stages
+                  ?.filter(
+                    (item) =>
+                      interviewType === "QA" || item.code === "TECHNICAL",
+                  )
+                  .map((item) => (
+                    <SelectionCard
+                      key={item.code}
+                      title={item.label}
+                      selected={interviewStage === item.code}
+                      onClick={() => setInterviewStage(item.code)}
+                      disabled={interviewType === "PT"}
+                    />
+                  ))}
               </div>
             </section>
+
+            {interviewType === "PT" && (
+              <section>
+                <div className="mb-4">
+                  <h2 className="text-[14px] font-semibold text-foreground">
+                    PT 준비 시간
+                  </h2>
+                  <p className="mt-1 text-[12.5px] text-muted-foreground">
+                    발표 주제를 준비할 시간을 선택해 주세요.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {([10, 20, 30] as const).map((minutes) => (
+                    <SelectionCard
+                      key={minutes}
+                      title={`${minutes}분`}
+                      selected={prepMinutes === minutes}
+                      onClick={() => setPrepMinutes(minutes)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
             <AdvancedSetting
               jobRole={jobRole}
               jobRoleOptions={options.jobRoleChips}
               companyName={companyName}
               jobDescription={jobDescription}
+              githubUrl={githubUrl}
               documentFile={documentFile}
               onJobRoleChange={setJobRole}
               onCompanyNameChange={setCompanyName}
               onJobDescriptionChange={setJobDescription}
+              onGithubUrlChange={setGithubUrl}
               onDocumentFileChange={setDocumentFile}
               documents={documents}
               selectedDocId={availableDocId}
