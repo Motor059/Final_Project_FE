@@ -8,6 +8,7 @@ import JobRoleChips from "./JobRoleChips";
 import PdfDropzone from "./PdfDropzone";
 
 interface AdvancedSettingProps {
+  canUseDocuments?: boolean;
   initiallyOpen?: boolean;
   jobRole: string;
   jobRoleOptions: string[];
@@ -24,6 +25,7 @@ interface AdvancedSettingProps {
 }
 
 export default function AdvancedSetting({
+  canUseDocuments = false,
   initiallyOpen = false,
   jobRole,
   jobRoleOptions,
@@ -163,7 +165,11 @@ export default function AdvancedSetting({
                 </p>
               </div>
 
-              {selectedDocument ? (
+              {!canUseDocuments ? (
+                <p className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-4 text-[12.5px] leading-6 text-muted-foreground">
+                  지원 서류는 로그인 후 추가할 수 있어요. 서류 없이도 모의면접을 체험할 수 있어요.
+                </p>
+              ) : selectedDocument ? (
                 <div className="flex items-center justify-between rounded-xl bg-zinc-900 px-4 py-4 text-white dark:bg-zinc-100 dark:text-zinc-900">
                   <div className="flex items-center gap-2.5 overflow-hidden">
                     <Check className="h-4 w-4 shrink-0" />
@@ -242,10 +248,11 @@ export default function AdvancedSetting({
                 </div>
               )}
 
-              <p className="mt-3 text-[12.5px] text-muted-foreground">
-                올린 지원 서류는 자동 저장돼요. 마이페이지에서 언제든 삭제할 수
-                있어요.
-              </p>
+              {canUseDocuments && (
+                <p className="mt-3 text-[12.5px] text-muted-foreground">
+                  올린 지원 서류는 자동 저장돼요. 마이페이지에서 언제든 삭제할 수 있어요.
+                </p>
+              )}
             </div>
           </div>
         </div>

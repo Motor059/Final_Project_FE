@@ -63,12 +63,14 @@ export default function Header({ reportForLogin }: { reportForLogin?: ReportResp
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-[60] w-full h-[68px] px-[20px] md:px-[40px] flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-[#F0EFED]">
-        <div 
-          className="text-2xl font-bold tracking-tighter cursor-pointer flex items-baseline"
-          onClick={() => handleNavigation('/')} 
+        <button
+          type="button"
+          aria-label="Devoir 홈"
+          className="flex shrink-0 items-center cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4"
+          onClick={() => handleNavigation('/')}
         >
-          Devoir<span className="inline-block w-[5px] h-[5px] bg-[#0A0A0A] rounded-full ml-[1px] mb-[3px]"></span>
-        </div>
+          <img src="/devoir-logo.svg" alt="devoir" width="113" height="24" className="block h-6 w-auto" />
+        </button>
         
         {isLoggedIn ? (
           <div className="flex items-center gap-4 relative" ref={dropdownRef}> 

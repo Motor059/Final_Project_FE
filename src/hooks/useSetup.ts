@@ -1,3 +1,6 @@
+import { isAxiosError, isCancel } from 'axios';
+import { getAuthVersion } from '@/lib/authStorage';
+import { ensureInterviewAuthentication } from '@/lib/guestAuth';
 import { useEffect, useRef, useState } from 'react';
 import { createSession, getGenerationStatus, getInterviewOptions } from '@/api/setupApi';
 import { uploadDocument } from '@/api/documentApi';
@@ -48,6 +51,7 @@ export default function useSetup() {
   const [isOptionsLoading, setIsOptionsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const mountedRef = useRef(false);
   const preparationRef = useRef<Preparation | null>(null);
 
@@ -98,21 +102,31 @@ export default function useSetup() {
     preparationRef.current = operation;
     const { signal } = operation.controller;
     let timedOut = false;
+    let authVersion: number | null = null;
     let deadline: ReturnType<typeof setTimeout> | null = null;
     const ensureActive = () => {
-      if (signal.aborted || !mountedRef.current || preparationRef.current !== operation) throw aborted();
+      if (signal.aborted || !mountedRef.current || preparationRef.current !== operation || (authVersion !== null && authVersion !== getAuthVersion())) throw aborted();
     };
     setIsStarting(true);
     setIsError(false);
+    setErrorMessage(null);
     try {
       ensureActive();
-      let finalDocId = selectedDocId ?? request.docId;
+      const sessionType = await ensureInterviewAuthentication();
+      authVersion = getAuthVersion();
+      ensureActive();
+      const isGuest = sessionType === 'GUEST';
+      if (isGuest && documentFile) throw new Error('지원 서류를 사용하려면 먼저 로그인해 주세요.');
+      let finalDocId = isGuest ? undefined : selectedDocId ?? request.docId;
       if (documentFile) {
         const document = await uploadDocument(documentFile, signal);
         finalDocId = document.docId;
       }
       ensureActive();
-      const session = await createSession({ ...request, docId: finalDocId });
+      const sessionRequest: CreateSessionRequest = { ...request };
+      delete sessionRequest.docId;
+      if (!isGuest && finalDocId !== undefined) sessionRequest.docId = finalDocId;
+      const session = await createSession(sessionRequest);
       operation.sessionId = session.sessionId;
       ensureActive();
       deadline = setTimeout(() => {
@@ -129,12 +143,21 @@ export default function useSetup() {
       }
     } catch (error) {
       void cancelCreatedSession(operation);
-      if ((signal.aborted && !timedOut) || !mountedRef.current) throw aborted();
+      if ((signal.aborted && !timedOut) || !mountedRef.current || isCancel(error)) {
+        if (preparationRef.current === operation) preparationRef.current = null;
+        throw aborted();
+      }
+      const serverMessage = isAxiosError<{ message?: string }>(error) ? error.response?.data?.message : undefined;
+      const message = timedOut ? '질문 생성이 지연되고 있습니다. 잠시 후 면접 준비를 다시 시도해 주세요.'
+        : typeof serverMessage === 'string' && serverMessage.trim() ? serverMessage
+        : error instanceof Error && !isAxiosError(error) ? error.message
+        : '면접 준비 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.';
       if (preparationRef.current === operation) {
         preparationRef.current = null;
         setIsError(true);
+        setErrorMessage(message);
       }
-      throw timedOut ? new Error('질문 생성이 지연되고 있습니다. 잠시 후 면접 준비를 다시 시도해 주세요.') : error;
+      throw new Error(message);
     } finally {
       if (deadline !== null) clearTimeout(deadline);
       if (mountedRef.current && preparationRef.current === operation) setIsStarting(false);
@@ -142,5 +165,5 @@ export default function useSetup() {
     }
   };
 
-  return { options, isOptionsLoading, isStarting, isError, startInterview, completePreparation };
+  return { options, isOptionsLoading, isStarting, isError, errorMessage, startInterview, completePreparation };
 }

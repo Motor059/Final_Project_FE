@@ -3,7 +3,7 @@ import { deleteMyAccount, getMyInfo } from '@/api/userApi';
 import { getHistoryList } from '@/api/historyApi';
 import type { UserResponse } from '@/types/user';
 import { authApi, type KakaoLoginResponse } from '@/api/authApi';
-import { clearAuthStorage, getAuthVersion, readCachedUser, saveAuthSession } from '@/lib/authStorage';
+import { clearAuthStorage, getAuthVersion, hasMemberSession, readCachedUser, saveAuthSession } from '@/lib/authStorage';
 import { useInterviewStore } from '@/store/useInterviewStore';
 import type { LastInterviewSetting } from '@/types/setup';
 import { latestInterviewSetting } from '@/lib/interviewSetup';
@@ -21,7 +21,7 @@ interface AuthState {
   updateNicknameInStore: (nickname: string) => void;
 }
 
-const initialLoginState = !!localStorage.getItem('accessToken');
+const initialLoginState = hasMemberSession();
 const initialUser = readCachedUser();
 let withdrawal: { version: number; promise: Promise<void> } | null = null;
 
@@ -47,8 +47,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   fetchUserInfo: async () => {
     const version = getAuthVersion();
-    if (!localStorage.getItem('accessToken') || get().isWithdrawing) return;
-    const isCurrent = () => version === getAuthVersion() && !get().isWithdrawing;
+    if (get().isWithdrawing) return;
+    if (!hasMemberSession()) {
+      set({ isLoggedIn: false, user: null, lastSetting: null });
+      return;
+    }
+    const isCurrent = () => version === getAuthVersion() && hasMemberSession() && !get().isWithdrawing;
     try {
       const userInfo = await getMyInfo();
       if (!isCurrent()) return;
@@ -77,7 +81,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   updateNicknameInStore: (nickname) => {
     const currentUser = get().user;
-    if (!currentUser || !get().isLoggedIn || get().isWithdrawing || !localStorage.getItem('accessToken')) return;
+    if (!currentUser || !get().isLoggedIn || get().isWithdrawing || !hasMemberSession()) return;
     const updatedUser = { ...currentUser, nickname };
     localStorage.setItem('userInfo', JSON.stringify(updatedUser));
     set({ user: updatedUser });
@@ -86,7 +90,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   withdraw: () => {
     const version = getAuthVersion();
     if (withdrawal?.version === version) return withdrawal.promise;
-    if (!get().isLoggedIn || !localStorage.getItem('accessToken')) {
+    if (!get().isLoggedIn || !hasMemberSession()) {
       return Promise.reject(new Error('로그인 후 다시 시도해 주세요.'));
     }
     set({ isWithdrawing: true });
@@ -109,7 +113,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (get().isWithdrawing) return;
     const version = getAuthVersion();
     try {
-      await authApi.logout();
+      if (hasMemberSession()) await authApi.logout();
     } catch (error) {
       console.warn('서버 로그아웃 통신 실패. 로컬 데이터만 삭제합니다.', error);
     } finally {
