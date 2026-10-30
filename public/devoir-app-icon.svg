@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512" role="img" aria-label="devoir">
+<defs>
+<radialGradient id="dv-a" cx="0.68" cy="0.3" r="0.6"><stop offset="0" stop-color="#AA64FF"/><stop offset="1" stop-color="#AA64FF" stop-opacity="0"/></radialGradient>
+<radialGradient id="dv-b" cx="0.3" cy="0.36" r="0.6"><stop offset="0" stop-color="#FFA05A"/><stop offset="1" stop-color="#FFA05A" stop-opacity="0"/></radialGradient>
+<radialGradient id="dv-c" cx="0.5" cy="0.85" r="0.6"><stop offset="0" stop-color="#50D29B"/><stop offset="1" stop-color="#50D29B" stop-opacity="0"/></radialGradient>
+<filter id="dv-melt" x="0" y="0" width="100%" height="100%"><feGaussianBlur stdDeviation="9" edgeMode="duplicate"/></filter>
+<filter id="dv-halo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2"/></filter>
+<filter id="dv-sheen" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+<radialGradient id="dv-rimlight" cx="0.5" cy="0.5" r="0.5"><stop offset="0.78" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.35"/></radialGradient>
+<clipPath id="dv-clip"><circle cx="50" cy="50" r="40"/></clipPath>
+</defs>
+<rect width="100" height="100" rx="23" fill="#0A0A0A"/>
+<g transform="translate(50 50) scale(0.75) translate(-50 -50)"><g clip-path="url(#dv-clip)"><circle cx="50" cy="50" r="40" fill="#FBF7FF"/><g filter="url(#dv-melt)" opacity="0.62"><circle cx="50" cy="50" r="40" fill="url(#dv-b)"/><circle cx="50" cy="50" r="40" fill="url(#dv-c)"/><circle cx="50" cy="50" r="40" fill="url(#dv-a)"/></g><circle cx="50" cy="50" r="40" fill="url(#dv-rimlight)"/><ellipse cx="62" cy="76" rx="16" ry="6" transform="rotate(-20 62 76)" fill="#FFFFFF" opacity="0.12" filter="url(#dv-sheen)"/><circle cx="50" cy="50" r="39.6" fill="none" stroke="#AA64FF" stroke-opacity="0.15" stroke-width="0.8"/></g></g>
+</svg>
