@@ -29,15 +29,31 @@ export default function History() {
   const historyItems: InterviewHistoryItem[] =
     history?.sessions.map((session) => ({
       id: session.sessionId,
+      interviewType: session.interviewType,
       date: formatDate(session.createdAt),
       company: session.companyName ?? companyTypeLabel(session.companyType),
       role: session.jobRole ?? "직무 미지정",
       stage: interviewStageLabel(session.interviewStage),
       totalScore: session.totalScore ?? null,
     })) ?? [];
+  const qaHistoryItems = historyItems.filter(
+    (item) => item.interviewType !== "PT"
+  );
 
+  const ptHistoryItems = historyItems.filter(
+    (item) => item.interviewType === "PT"
+  );
   const handleSelectHistory = (id: number) => {
-    navigate(reportPath(id), { state: { sessionId: id, isFromHistory: true } });
+    const selectedItem = historyItems.find((item) => item.id === id);
+
+    if (selectedItem?.interviewType === "PT") {
+      window.alert("PT 면접 결과 조회 기능은 아직 준비 중입니다.");
+      return;
+    }
+
+    navigate(reportPath(id), {
+      state: { sessionId: id, isFromHistory: true },
+    });
   };
 
   if (isLoading) {
@@ -87,11 +103,30 @@ export default function History() {
           />
         </div>
 
-        <div className="mt-10">
-          <HistoryList
-            items={historyItems}
-            onSelect={handleSelectHistory}
-          />
+        <div className="mt-10 space-y-10">
+          <section>
+            <h2 className="mb-4 text-[18px] font-semibold">
+              QA 면접 기록
+            </h2>
+
+            <HistoryList
+              items={qaHistoryItems}
+              onSelect={handleSelectHistory}
+              emptyMessage="아직 저장된 QA 면접 기록이 없어요."
+            />
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-[18px] font-semibold">
+              PT 면접 기록
+            </h2>
+
+            <HistoryList
+              items={ptHistoryItems}
+              onSelect={handleSelectHistory}
+              emptyMessage="아직 저장된 PT 면접 기록이 없어요."
+            />
+          </section>
         </div>
       </main>
     </div>

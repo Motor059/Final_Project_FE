@@ -4,6 +4,7 @@ interface SelectionCardProps {
   detail?: string;
   selected: boolean;
   onClick: () => void;
+  disabled?: boolean;
 }
 
 export default function SelectionCard({
@@ -12,11 +13,13 @@ export default function SelectionCard({
   detail,
   selected,
   onClick,
+  disabled = false,
 }: SelectionCardProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={selected}
       className={[
         "w-full rounded-xl border px-[18px] py-[18px] text-left",
@@ -25,7 +28,8 @@ export default function SelectionCard({
         selected
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-background text-foreground hover:border-foreground/30",
-      ].join(" ")}
+        disabled && "cursor-not-allowed opacity-70",
+      ].filter(Boolean).join(" ")}
     >
       <div className="text-[15px] font-semibold">{title}</div>
 

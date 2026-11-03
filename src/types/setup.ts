@@ -27,6 +27,8 @@ export interface InterviewOptionsData {
 export interface CreateSessionRequest {
   companyType: CompanyType;
   interviewStage: InterviewStage;
+  interviewType?: InterviewType;
+  prepMinutes?: PrepMinutes;
   companyName?: string;
   jobRole?: string;
   jobDescription?: string;
@@ -50,12 +52,13 @@ export interface GenerationStatusData {
 export interface InterviewSetup {
   companyType: CompanyType;
   interviewStage: InterviewStage;
+  interviewType?: InterviewType;
+  prepMinutes?: PrepMinutes;
   companyName: string;
   jobRole: string;
   jobDescription: string;
   docId: number | null;
 }
-
 export interface PreparedInterview {
   sessionId: number;
   docId: number | null;
@@ -72,3 +75,7 @@ export interface SavedInterviewSetup extends InterviewSetup {
   sessionId: number;
   savedAt: number;
 }
+
+export type InterviewType = "QA" | "PT";
+
+export type PrepMinutes = 10 | 20 | 30;

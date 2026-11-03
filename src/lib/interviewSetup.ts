@@ -12,7 +12,15 @@ export function parseInterviewSetup(value: unknown): InterviewSetup | null {
   if (companyType !== 'BIG_TECH_SW' && companyType !== 'SERVICE' && companyType !== 'FINANCE_IT') return null;
   if (interviewStage !== 'TECHNICAL' && interviewStage !== 'PERSONALITY') return null;
   return {
-    companyType, interviewStage,
+    companyType,
+    interviewStage,
+    interviewType: item.interviewType === 'PT' ? 'PT' : 'QA',
+    prepMinutes:
+      item.prepMinutes === 10 ||
+        item.prepMinutes === 20 ||
+        item.prepMinutes === 30
+        ? item.prepMinutes
+        : 20,
     companyName: optionalText(item.companyName),
     jobRole: optionalText(item.jobRole),
     jobDescription: optionalText(item.jobDescription),
@@ -29,7 +37,7 @@ export function readSavedInterviewSetup(userId: number): SavedInterviewSetup | n
     if (!setup || typeof value !== 'object' || value === null) return null;
     const item = value as Record<string, unknown>;
     if (item.userId !== userId || !positiveId(item.sessionId) ||
-        typeof item.savedAt !== 'number' || !Number.isFinite(item.savedAt) || item.savedAt <= 0) return null;
+      typeof item.savedAt !== 'number' || !Number.isFinite(item.savedAt) || item.savedAt <= 0) return null;
     return { ...setup, userId, sessionId: item.sessionId, savedAt: item.savedAt };
   } catch {
     return null;
