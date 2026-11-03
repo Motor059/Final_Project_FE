@@ -7,9 +7,10 @@ interface ReportScoreBoardProps {
   verdict: string;
   chartData: RadarAxis[];
   radarType?: string;
+  analysisLabel?: string;
 }
 
-export default function ReportScoreBoard({ totalScore, verdict, chartData, radarType }: ReportScoreBoardProps) {
+export default function ReportScoreBoard({ totalScore, verdict, chartData, radarType, analysisLabel }: ReportScoreBoardProps) {
   
   return (
     <section className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-4 mb-4">
@@ -32,7 +33,7 @@ export default function ReportScoreBoard({ totalScore, verdict, chartData, radar
       {/* 항목별 분석 (방사형 차트) 카드 */}
       <div className="border border-[#F0EFED] rounded-[20px] p-[24px] bg-white shadow-sm flex flex-col">
         <div className="text-[12.5px] text-[#A8A29E] font-semibold text-center mb-[6px]">
-          항목별 분석 · {interviewStageLabel(radarType)}
+          항목별 분석 · {analysisLabel ?? interviewStageLabel(radarType)}
         </div>
         
         {/* ScoreChart 컴포넌트 적용 */}

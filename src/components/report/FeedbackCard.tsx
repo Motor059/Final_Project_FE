@@ -1,32 +1,47 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import type { FeedbackCardData, TailQuestion } from '@/types/report';
+import type { TailQuestion } from '@/types/report';
+import type { ReportFeedbackContent, RepositoryEvidenceFile } from '@/types/reportView';
+import RepositoryEvidence from '@/components/report/RepositoryEvidence';
 import { followUpLabel, scoreColor, scoreText, weakAxisLabel } from '@/lib/reportDisplay';
 
 interface FeedbackCardProps {
-  data: FeedbackCardData;
+  data: ReportFeedbackContent;
   index: number;
+  kind?: 'QUESTION' | 'PRESENTATION';
+  questionLabel?: string;
+  presentationNote?: string;
+  sourceFiles?: readonly RepositoryEvidenceFile[];
+  defaultOpen?: boolean;
 }
 
-export default function FeedbackCard({ data, index }: FeedbackCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function FeedbackCard({ data, index, kind = 'QUESTION', questionLabel, presentationNote, sourceFiles = [], defaultOpen = false }: FeedbackCardProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isDeepOpen, setIsDeepOpen] = useState(false);
+  const contentId = useId();
+  const isPresentation = kind === 'PRESENTATION';
+  const hasEvidence = sourceFiles.some((file) => file.path.trim().length > 0);
 
   return (
     <div className="border border-[#F0EFED] rounded-[16px] overflow-hidden bg-white mb-[10px]">
       <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-controls={contentId}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-[22px] py-[18px] hover:bg-gray-50 transition-colors"
+        className="w-full flex items-start justify-between gap-3 px-[22px] py-[18px] text-left hover:bg-gray-50 transition-colors"
       >
-        <div className="flex items-center gap-[14px]">
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-2 sm:flex-row sm:gap-[14px]">
           <span className="text-[12px] text-[#A8A29E] font-semibold whitespace-nowrap">
-            질문 {index + 1}
+            {isPresentation ? '발표' : questionLabel ?? `질문 ${index + 1}`}
           </span>
-          <span className="text-[14.5px] font-medium text-[#1C1917] text-left">
-            {data.shortTitle}
+          <span className="flex min-w-0 flex-wrap items-center gap-2 text-[14.5px] font-medium text-[#1C1917] text-left">
+            <span className="min-w-0 break-words">{data.shortTitle}</span>
+            {isPresentation && <span className="rounded-md bg-[#ECE7F3] px-2 py-0.5 text-[10.5px] font-semibold text-[#746680]">PT 발표</span>}
+            {hasEvidence && <span className="rounded-md bg-[#F1EDF6] px-2 py-0.5 text-[10.5px] font-semibold text-[#746680]">레포 기반</span>}
           </span>
         </div>
-        <div className="flex items-center gap-[12px]">
+        <div className="flex shrink-0 items-center gap-[12px]">
           <span className="text-[16px] font-semibold" style={{ color: scoreColor(data.topicScore) }}>
             {scoreText(data.topicScore)}
           </span>
@@ -35,15 +50,23 @@ export default function FeedbackCard({ data, index }: FeedbackCardProps) {
       </button>
 
       {isOpen && (
-        <div className="px-[22px] pb-[24px] pt-1 animate-in fade-in slide-in-from-top-2">
+        <div id={contentId} className="min-w-0 px-[22px] pb-[24px] pt-1 animate-in fade-in slide-in-from-top-2">
           {/* 메인 질문 */}
           <h4 className="text-[18px] leading-[1.45] font-medium text-[#0A0A0A] mb-[16px]">
             {data.question}
           </h4>
-          
+
+          <RepositoryEvidence files={sourceFiles} />
+          {isPresentation && presentationNote?.trim() && (
+            <details className="mb-[18px] rounded-[12px] border border-[#F0EFED] px-4 py-3">
+              <summary className="cursor-pointer text-[12px] font-medium text-[#78716C]">준비한 메모 보기</summary>
+              <p className="mt-3 whitespace-pre-wrap break-words text-[13px] leading-7 text-[#78716C]">{presentationNote}</p>
+            </details>
+          )}
+
           <div className="bg-[#FAFAF9] rounded-[12px] p-[16px] mb-[18px]">
-            <div className="text-[11.5px] font-semibold text-[#A8A29E] mb-[6px]">내 답변</div>
-            <p className="text-[13.5px] leading-[1.6] text-[#44403C]">
+            <div className="text-[11.5px] font-semibold text-[#A8A29E] mb-[6px]">{isPresentation ? '내 발표' : '내 답변'}</div>
+            <p className="whitespace-pre-wrap break-words text-[13.5px] leading-[1.6] text-[#44403C]">
               {data.answer}
             </p>
           </div>
@@ -55,11 +78,13 @@ export default function FeedbackCard({ data, index }: FeedbackCardProps) {
             <FeedbackRow label="다음엔" colorClass="text-white bg-[#0A0A0A]" text={data.next} />
           </div>
 
-          <button 
+          <button
+            type="button"
+            aria-expanded={isDeepOpen}
             onClick={() => setIsDeepOpen(!isDeepOpen)}
             className="mt-4 text-[12.5px] text-[#78716C] underline underline-offset-4 hover:text-[#0A0A0A] transition-colors"
           >
-            {isDeepOpen ? '심화 닫기' : '심화 보기 — 개선된 답변 · 꼬리 질문'}
+            {isDeepOpen ? '심화 닫기' : isPresentation ? '심화 보기 — 개선된 발표 개요' : '심화 보기 — 개선된 답변 · 꼬리 질문'}
           </button>
 
           {/* 심화 영역 (약한 축, 예시, 꼬리질문) */}
@@ -75,14 +100,14 @@ export default function FeedbackCard({ data, index }: FeedbackCardProps) {
 
               {/* 개선된 답변 예시 */}
               <div className="mb-[32px]">
-                <div className="text-[12.5px] font-semibold text-[#57534E] mb-[12px]">개선된 답변 예시</div>
+                <div className="text-[12.5px] font-semibold text-[#57534E] mb-[12px]">{isPresentation ? '개선된 발표 개요' : '개선된 답변 예시'}</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
                    <div className="bg-[#FAFAF9] border border-[#F0EFED] rounded-[11px] p-[16px]">
-                      <div className="text-[11px] font-semibold text-[#9A3412] mb-[8px]">내 답변</div>
+                      <div className="text-[11px] font-semibold text-[#9A3412] mb-[8px]">{isPresentation ? '내 발표' : '내 답변'}</div>
                       <p className="text-[13px] leading-[1.6] text-[#78716C]">{data.improvedAnswer?.before}</p>
                    </div>
                    <div className="bg-[#0A0A0A] rounded-[11px] p-[16px]">
-                      <div className="text-[11px] font-semibold text-[#15803D] mb-[8px]">개선된 답변</div>
+                      <div className="text-[11px] font-semibold text-[#15803D] mb-[8px]">{isPresentation ? '개선된 발표 개요' : '개선된 답변'}</div>
                       <p className="text-[13px] leading-[1.6] text-[#E7E5E4]">{data.improvedAnswer?.after}</p>
                    </div>
                 </div>
