@@ -1,152 +1,68 @@
-import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/store/authStore';
-import { useInterviewStore } from '@/store/useInterviewStore';
-import { useAlertStore } from '@/store/useAlertStore';
-import { startKakaoLogin } from '@/lib/authRedirect';
-import { reportSessionId } from '@/lib/reportNavigation';
-import type { ReportResponseData } from '@/types/report';
+import type { MouseEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/authStore";
+import { useInterviewStore } from "@/store/useInterviewStore";
+import { useAlertStore } from "@/store/useAlertStore";
+import { startKakaoLogin } from "@/lib/authRedirect";
+import { reportSessionId } from "@/lib/reportNavigation";
+import type { ReportResponseData } from "@/types/report";
+import "@/components/common/header.css";
+
+const navigation = [
+  { path: "/setup", label: "모의면접 시작" },
+  { path: "/archive", label: "기출 질문" },
+  { path: "/history", label: "히스토리" },
+];
 
 export default function Header({ reportForLogin }: { reportForLogin?: ReportResponseData } = {}) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, user, logout } = useAuthStore(); 
-  const { setExitModalOpen, setExitTargetPath } = useInterviewStore();
-  const { showConfirm, showAlert } = useAlertStore();
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const user = useAuthStore((state) => state.user);
+  const showAlert = useAlertStore((state) => state.showAlert);
+  const hideBackButton = location.pathname === "/" || location.pathname === "/interview";
 
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const hideBackButton = 
-    location.pathname === '/' || 
-    location.pathname === '/interview';
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleKakaoLogin = () => {
-    const sessionId = location.pathname === '/report'
-      ? reportSessionId(location.search, location.state?.sessionId) : undefined;
-    try {
-      startKakaoLogin(sessionId ? { sessionId, report: reportForLogin } : null);
-    } catch {
-      showAlert('로그인을 준비하지 못했습니다. 브라우저 저장 설정을 확인하고 다시 시도해 주세요.');
+  const handleNavigation = (event: MouseEvent<HTMLAnchorElement>, path: string) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (location.pathname === path && !location.search) { event.preventDefault(); return; }
+    if (location.pathname === "/interview") {
+      event.preventDefault();
+      const interview = useInterviewStore.getState();
+      interview.setExitTargetPath(path);
+      interview.setExitModalOpen(true);
     }
   };
-
-  const handleNavigation = (path: string) => {
-    setIsDropdownOpen(false);
-    if (location.pathname === '/interview') {
-      setExitTargetPath(path);
-      setExitModalOpen(true);
-    } else {
-      navigate(path);
-    }
+  const handleLogin = () => {
+    const sessionId = location.pathname === "/report" ? reportSessionId(location.search, location.state?.sessionId) : undefined;
+    try { startKakaoLogin(sessionId ? { sessionId, report: reportForLogin } : null); }
+    catch { showAlert("로그인을 준비하지 못했습니다. 브라우저 저장 설정을 확인하고 다시 시도해 주세요."); }
   };
-
-  const handleLogout = () => {
-    setIsDropdownOpen(false);
-    showConfirm("로그아웃 하시겠습니까?", async () => {
-      await logout();
-    });
-  };
+  const isCurrent = (path: string) => path === "/setup"
+    ? location.pathname === "/setup" || location.pathname === "/interview" || location.pathname.startsWith("/pt/")
+    : location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-[60] w-full h-[68px] px-[20px] md:px-[40px] flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-[#F0EFED]">
-        <button
-          type="button"
-          aria-label="Devoir 홈"
-          className="flex shrink-0 items-center cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4"
-          onClick={() => handleNavigation('/')}
-        >
-          <img src="/devoir-logo.svg" alt="devoir" width="113" height="24" className="block h-6 w-auto" />
-        </button>
-        
+      <header className={`devoir-header ${isLoggedIn ? "has-member-navigation" : ""}`}>
+        <Link to="/" className="devoir-header-logo" aria-label="Devoir 홈" onClick={(event) => handleNavigation(event, "/")}>
+          <img src="/devoir-logo.svg" alt="devoir" width="113" height="24" />
+        </Link>
         {isLoggedIn ? (
-          <div className="flex items-center gap-4 relative" ref={dropdownRef}> 
-            <button
-              type="button"
-              aria-label="프로필 메뉴"
-              aria-expanded={isDropdownOpen}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              title="내 정보"
-              className="w-[36px] h-[36px] rounded-full bg-[#0A0A0A] text-white flex items-center justify-center text-[14px] font-semibold cursor-pointer shadow-sm hover:scale-105 transition-transform"
-            >
-              {user?.nickname ? user.nickname.charAt(0) : '유'}
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute right-0 top-[48px] w-[220px] bg-white rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#F0EFED] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-                
-                {/* 상단 유저 정보 */}
-                <div className="px-5 py-4 border-b border-[#F0EFED]">
-                  <div className="text-[16px] font-bold text-[#111111] tracking-tight">
-                    {user?.nickname ? `${user.nickname}님` : "카카오사용자님"}
-                  </div>
-                  <div className="text-[13px] text-[#A8A29E] mt-1 font-medium">
-                    카카오 계정 연결됨
-                  </div>
-                </div>
-
-                {/* 네비게이션 메뉴 */}
-                <div className="py-2">
-                  <button
-                    onClick={() => handleNavigation('/mypage')}
-                    className="w-full text-left px-5 py-3 text-[15px] font-medium text-[#111111] hover:bg-[#FAFAF9] transition-colors"
-                  >
-                    마이페이지
-                  </button>
-                  <button
-                    onClick={() => handleNavigation('/history')}
-                    className="w-full text-left px-5 py-3 text-[15px] font-medium text-[#111111] hover:bg-[#FAFAF9] transition-colors"
-                  >
-                    히스토리
-                  </button>
-                </div>
-
-                {/* 로그아웃 버튼 */}
-                <div className="border-t border-[#F0EFED] py-2">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-5 py-3 text-[15px] font-medium text-[#E11D48] hover:bg-[#FFF1F2] transition-colors"
-                  >
-                    로그아웃
-                  </button>
-                </div>
-                
-              </div>
-            )}
+          <div className="devoir-header-actions">
+            <nav className="devoir-header-navigation" aria-label="주 메뉴">
+              {navigation.map((item) => <Link key={item.path} to={item.path} className={`devoir-header-link ${isCurrent(item.path) ? "is-current" : ""}`} aria-current={isCurrent(item.path) ? "page" : undefined} onClick={(event) => handleNavigation(event, item.path)}>{item.label}</Link>)}
+            </nav>
+            <Link to="/mypage" className="devoir-header-profile" aria-label="마이페이지" title={user?.nickname ? `${user.nickname}님 마이페이지` : "마이페이지"} aria-current={location.pathname.startsWith("/mypage") ? "page" : undefined} onClick={(event) => handleNavigation(event, "/mypage")}>
+              {user?.nickname?.charAt(0) || "유"}
+            </Link>
           </div>
-        ) : (
-          <Button 
-            variant="default" 
-            className="rounded-md font-semibold text-[14px]"
-            onClick={handleKakaoLogin}
-          >
-            로그인
-          </Button>
-        )}
+        ) : <Button type="button" className="rounded-md text-[14px] font-semibold" onClick={handleLogin}>로그인</Button>}
       </header>
-
       {!hideBackButton && (
-        <div className="fixed top-[68px] left-0 z-40 px-[20px] md:px-[40px] pt-[20px]">
-          <button 
-            onClick={() => navigate(-1)}
-            className="p-[4px] -ml-[4px] text-[#0A0A0A] hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
-            aria-label="뒤로 가기"
-          >
-            <ChevronLeft className="w-7 h-7" strokeWidth={2.5} />
-          </button>
+        <div className="fixed left-0 top-[68px] z-40 px-[20px] pt-[20px] md:px-[40px]">
+          <button type="button" onClick={() => navigate(-1)} className="-ml-[4px] cursor-pointer rounded-lg p-[4px] text-[#0A0A0A] hover:bg-gray-200" aria-label="뒤로 가기"><ChevronLeft className="h-7 w-7" strokeWidth={2.5} /></button>
         </div>
       )}
     </>

@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-
 import Header from "@/components/common/Header";
 import LoadingState from "@/components/common/LoadingState";
 import PageLoading from "@/components/common/PageLoading";
@@ -8,6 +7,7 @@ import DocumentList, {
   type SupportDocument,
 } from "@/components/mypage/DocumentList";
 import useMyPage from "@/hooks/useMyPage";
+import MyQuestionsSection from "@/components/mypage/MyQuestionsSection";
 import { useAuthStore } from "@/store/authStore";
 import { useAlertStore } from "@/store/useAlertStore";
 import { useInterviewStore } from "@/store/useInterviewStore";
@@ -16,6 +16,7 @@ import { isAxiosError } from "axios";
 export default function MyPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logout = useAuthStore((state) => state.logout);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const questionAudioEnabled = useInterviewStore((state) => state.questionAudioEnabled);
   const setQuestionAudioEnabled = useInterviewStore((state) => state.setQuestionAudioEnabled);
   const { showAlert, showConfirm } = useAlertStore();
@@ -152,6 +153,7 @@ export default function MyPage() {
           <p className="text-[14px] text-muted-foreground">
             마이페이지 정보를 불러오지 못했습니다.
           </p>
+          {isLoggedIn && <div className="mt-8"><MyQuestionsSection /><AccountSection onLogout={handleLogout} onWithdraw={handleWithdraw} /></div>}
         </main>
       </div>
     );
@@ -173,7 +175,7 @@ export default function MyPage() {
         
         <div className="mb-12">
           <h1 className="text-[32px] font-bold tracking-[-0.03em] text-foreground md:text-[36px]">
-            내 정보와 지원 서류
+            내 정보와 활동
           </h1>
         </div>
 
@@ -252,6 +254,8 @@ export default function MyPage() {
             onUpload={handleUploadClick}
           />
         </section>
+
+        <MyQuestionsSection />
 
         <div className="my-12 h-px bg-border" />
 
