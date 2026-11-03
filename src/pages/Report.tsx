@@ -2,15 +2,12 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '@/components/common/Header';
 import PageLoading from '@/components/common/PageLoading';
-import ReportHero from '@/components/report/ReportHero';
-import ReportScoreBoard from '@/components/report/ReportScoreBoard';
-import FeedbackCard from '@/components/report/FeedbackCard';
+import ReportContent from '@/components/report/ReportContent';
 import ReportLoading from '@/components/report/ReportLoading';
 import StickySaveBanner from '@/components/report/StickySaveBanner';
 import { useReportPolling } from '@/hooks/useReportPolling';
 import { useAlertStore } from '@/store/useAlertStore';
 import { useAuthStore } from '@/store/authStore';
-import { companyTypeLabel, interviewStageLabel } from '@/lib/reportDisplay';
 import { isReportSnapshot, reportSessionId, validSessionId } from '@/lib/reportNavigation';
 
 export default function ReportPage() {
@@ -59,18 +56,6 @@ export default function ReportPage() {
     );
   }
 
-  const companyInfoText = [
-    companyTypeLabel(data.meta.companyType), 
-    data.meta.companyName, 
-    data.meta.jobTitle
-  ].filter(Boolean).join(' '); 
-
-  const metaHeaderString = [
-    new Date(data.meta.createdAt).toLocaleDateString(),
-    companyInfoText, 
-    interviewStageLabel(data.meta.stage)
-  ].filter(Boolean).join(' · ');
-
   return (
     <div className="min-h-screen bg-[#FAFAF9] pb-[120px] animate-in fade-in duration-500 relative">      
       <div className="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#F0EFED]">
@@ -78,42 +63,7 @@ export default function ReportPage() {
       </div>
       
       <main className="max-w-[780px] mx-auto pt-[100px] px-[20px]">
-        {/* 상단 메타 정보 */}
-        <div className="mb-[20px]">
-          <div className="flex items-center gap-[10px] text-[13px] text-[#A8A29E] font-medium">
-            <span>{metaHeaderString}</span>
-          </div>
-        </div>
-
-        {preview && isLoggedIn && (
-          <p className="mb-5 rounded-xl border border-[#E7E5E4] bg-white px-4 py-3 text-[13px] leading-relaxed text-[#78716C]" role="status">
-            체험 결과입니다. 회원으로 진행한 면접은 히스토리에 저장돼요.
-          </p>
-        )}
-
-        {/* 핵심 코칭 배너 */}
-        <ReportHero 
-          title={data.keyCoaching.weakness} 
-          suggestion={data.keyCoaching.action} 
-        />
-
-        {/* 종합 점수 및 차트 */}
-        <ReportScoreBoard 
-          totalScore={data.totalScore} 
-          verdict={data.verdict}
-          chartData={data.radar.axes} 
-          radarType={data.radar.type}
-        />
-
-        {/* 질문별 피드백 리스트 */}
-        <div className="mt-8">
-          <div className="text-[13px] font-semibold text-[#78716C] mb-[12px]">질문별 피드백</div>
-          <div className="flex flex-col">
-            {data.cards.map((card, idx) => (
-              <FeedbackCard key={card.questionId} data={card} index={idx} />
-            ))}
-          </div>
-        </div>
+        <ReportContent data={data} showGuestNotice={!!preview && isLoggedIn} />
 
         {/* 하단 액션 버튼 */}
         <div className="flex gap-[12px] mt-[36px] flex-wrap">

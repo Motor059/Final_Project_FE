@@ -30,7 +30,8 @@ export default function PTPreparation() {
     const blocker = useBlocker(
         ({ currentLocation, nextLocation }) =>
             sessionId !== undefined &&
-            currentLocation.pathname !== nextLocation.pathname
+            currentLocation.pathname !== nextLocation.pathname &&
+            !(import.meta.env.DEV && nextLocation.pathname === "/pt/presentation")
     );
     useEffect(() => {
         if (blocker.state !== "blocked") {
@@ -99,6 +100,16 @@ export default function PTPreparation() {
                         >
                             면접 설정으로 돌아가기
                         </Button>
+                        {import.meta.env.DEV && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => navigate("/pt/presentation")}
+                                className="mt-3 h-12 w-full rounded-xl"
+                            >
+                                PT 발표 화면 미리보기
+                            </Button>
+                        )}
                     </div>
                 </main>
             </>
@@ -191,6 +202,20 @@ export default function PTPreparation() {
                     <p className="mt-3 text-center text-[12px] text-muted-foreground">
                         서버 연결이 완료되면 발표를 시작할 수 있습니다.
                     </p>
+                    {import.meta.env.DEV && (
+                        <div className="mt-5 text-center">
+                            <Button
+                                type="button"
+                                variant="link"
+                                onClick={() => navigate("/pt/presentation", {
+                                    state: { presentationNote: note },
+                                })}
+                                className="text-[12px] text-muted-foreground"
+                            >
+                                PT 발표 화면 미리보기
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </main>
         </>

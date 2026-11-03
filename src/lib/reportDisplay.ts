@@ -9,6 +9,8 @@ const strategyLabels: Record<string, string> = {
   ACTION: '구체적 행동', RESULT: '결과 확인', REFLECTION: '자기성찰',
 };
 const axisLabels: Record<string, string> = {
+  STRUCTURE: '구조·논리 전개', EVIDENCE: '근거·구체성',
+  RELEVANCE: '주제 적합성', DELIVERY: '전달력·설득력',
   ACCURACY: '정확성', CORRECTNESS: '정확성', DEPTH: '깊이',
   PROBLEM_SOLVING: '문제 해결', TECH_CHOICE: '기술 선택 근거',
   TECH_CHOICE_REASON: '기술 선택 근거', TECH_SELECTION: '기술 선택 근거',
