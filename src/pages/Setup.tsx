@@ -45,6 +45,7 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
     isOptionsLoading,
     isStarting,
     isError,
+    errorMessage,
     startInterview,
     completePreparation,
   } = useSetup();
@@ -127,7 +128,7 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
           jobRole: jobRole.trim() || undefined,
           jobDescription: jobDescription.trim() || undefined,
         },
-        documentFile,
+        isLoggedIn ? documentFile : null,
         availableDocId
       );
       const { sessionId } = prepared;
@@ -318,6 +319,7 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
             )}
 
             <AdvancedSetting
+              canUseDocuments={isLoggedIn}
               jobRole={jobRole}
               jobRoleOptions={options.jobRoleChips}
               companyName={companyName}
@@ -344,7 +346,7 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
 
           {isError && (
             <p className="mt-5 text-center text-[12.5px] text-destructive">
-              요청 처리 중 문제가 발생했습니다.
+              {errorMessage || "요청 처리 중 문제가 발생했습니다."}
             </p>
           )}
 

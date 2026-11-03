@@ -1,5 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
-import { clearAuthStorage, getAuthVersion } from '@/lib/authStorage';
+import { clearAuthStorage, clearGuestSession, getAuthVersion, isGuestSession } from '@/lib/authStorage';
 import type { TokenRefreshResponse } from './authApi';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -14,7 +14,11 @@ type RetryRequest = InternalAxiosRequestConfig & { _retry?: boolean; _authVersio
 let refreshOperation: { version: number; promise: Promise<TokenRefreshResponse> } | null = null;
 
 function isAuthRequest(url?: string) {
-  return url?.includes('/auth/kakao/login') || url?.includes('/auth/token/refresh');
+  return url?.includes('/auth/kakao/login') || url?.includes('/auth/token/refresh') || url?.includes('/auth/guest');
+}
+
+function isPublicRequest(url?: string) {
+  return isAuthRequest(url) || url?.split('?')[0].endsWith('/interview-options');
 }
 
 function changedSession() {
@@ -71,7 +75,7 @@ api.interceptors.request.use((config) => {
   if (request._authVersion !== undefined && request._authVersion !== getAuthVersion()) throw changedSession();
   request._authVersion = getAuthVersion();
   const token = localStorage.getItem('accessToken');
-  if (isAuthRequest(config.url)) config.headers.delete('Authorization');
+  if (isPublicRequest(config.url)) config.headers.delete('Authorization');
   else if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -91,12 +95,16 @@ api.interceptors.response.use(
     const status = error.response.status;
     const errorData = error.response.data;
     const isUnauthorized = status === 401 || Number(errorData?.code) === 401;
-    if (isUnauthorized && originalRequest && !isAuthRequest(originalRequest.url)) {
+    if (isUnauthorized && originalRequest && !isPublicRequest(originalRequest.url)) {
       const version = originalRequest._authVersion ?? getAuthVersion();
       const authorization = originalRequest.headers.Authorization;
       const accessToken = localStorage.getItem('accessToken');
       if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ') || !accessToken) {
         return Promise.reject(error);
+      }
+      if (authorization === `Bearer ${accessToken}` && isGuestSession()) {
+        clearGuestSession();
+        return Promise.reject(new Error('체험 인증을 확인하지 못했습니다. 새 면접을 시작하거나 로그인 후 다시 시도해 주세요.'));
       }
       if (originalRequest._retry) {
         if (authorization === `Bearer ${accessToken}`) expireSession();
