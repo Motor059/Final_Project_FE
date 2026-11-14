@@ -30,6 +30,14 @@ export function hasMemberSession() {
   return !!localStorage.getItem('accessToken') && !isGuestSession();
 }
 
+export function getAuthSessionIdentity(): string | null {
+  const token = localStorage.getItem('accessToken');
+  if (!token) return null;
+  const subject = accessTokenClaims(token)?.sub;
+  if ((typeof subject !== 'string' && typeof subject !== 'number') || String(subject).trim() === '') return null;
+  return `${isGuestSession() ? 'GUEST' : 'MEMBER'}:${subject}`;
+}
+
 export function hasUsableGuestToken() {
   const token = localStorage.getItem('accessToken');
   if (!token || !isGuestSession()) return false;
@@ -47,6 +55,7 @@ export function clearGuestSession() {
   localStorage.removeItem('userInfo');
   localStorage.removeItem('authSessionType');
   localStorage.removeItem('guestTokenExpiresAt');
+  window.dispatchEvent(new Event('devoir:auth-session-change'));
 }
 
 export function saveGuestSession(accessToken: string) {
@@ -60,6 +69,7 @@ export function saveGuestSession(accessToken: string) {
   localStorage.setItem('authSessionType', 'GUEST');
   localStorage.setItem('guestTokenExpiresAt', String(expiresAt));
   localStorage.setItem('accessToken', accessToken);
+  window.dispatchEvent(new Event('devoir:auth-session-change'));
 }
 
 export function saveAuthSession(tokens: { accessToken: string; refreshToken: string }, user: UserResponse) {
@@ -70,6 +80,7 @@ export function saveAuthSession(tokens: { accessToken: string; refreshToken: str
   localStorage.setItem("refreshToken", tokens.refreshToken);
   localStorage.setItem("userInfo", JSON.stringify(user));
   localStorage.removeItem("pendingTerms");
+  window.dispatchEvent(new Event('devoir:auth-session-change'));
 }
 
 export function clearAuthStorage() {
@@ -83,6 +94,10 @@ export function clearAuthStorage() {
   sessionStorage.removeItem("interviewSetup");
   sessionStorage.removeItem("interviewSessionId");
   sessionStorage.removeItem("reportLoginReturn");
+  sessionStorage.removeItem("ptCreateRequest");
+  sessionStorage.removeItem("ptPreparationSessionId");
+  sessionStorage.removeItem("devoirReportAnalysis");
+  window.dispatchEvent(new Event('devoir:auth-session-change'));
 }
 
 export function readCachedUser(): UserResponse | null {

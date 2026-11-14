@@ -1,5 +1,5 @@
 import Header from '@/components/common/Header';
-import LoadingState from '@/components/common/LoadingState';
+import MemberPageHero from '@/components/common/MemberPageHero';
 import type { ReportResponseData } from '@/types/report';
 
 type LoadingLayout = 'profile' | 'history' | 'setup' | 'report';
@@ -70,11 +70,31 @@ function Skeleton({ layout }: { layout: LoadingLayout }) {
 }
 
 export default function PageLoading({ layout, title, reportForLogin }: PageLoadingProps) {
+  if (layout === 'profile' || layout === 'history') return <div className="member-page">
+    <Header hideBackButton reportForLogin={reportForLogin} />
+    <p role="status" className="sr-only">{title}</p>
+    <MemberPageHero eyebrow={layout === 'profile' ? '마이페이지' : '히스토리'}
+      title={layout === 'profile' ? '내 정보와 지원 서류' : <span className="member-title-skeleton devoir-loading-skeleton" aria-hidden="true" />} />
+    <main aria-busy="true" className="member-page-container member-page-body">
+      <div aria-hidden="true" className="devoir-loading-skeleton">
+        {layout === 'history' ? <>
+          <div className="member-history-summary">{[0, 1].map((item) => <div key={item} className="member-history-stat"><Block className="h-3 w-20" /><Block className="mt-5 h-10 w-14" /></div>)}</div>
+          <Block className="mb-6 h-6 w-24" />
+          <div className="member-history-list">{[0, 1, 2].map((item) => <div key={item} className="member-history-card"><Lines /><Block className="h-8 w-12" /></div>)}</div>
+        </> : <>
+          <Block className="mb-4 h-4 w-20" />
+          <div className="member-profile-card mb-14"><Block className="h-16 w-16 shrink-0 rounded-full" /><Lines /><Block className="hidden h-11 w-28 rounded-full sm:block" /></div>
+          <Block className="mb-5 h-5 w-28" />
+          <div className="member-document-list">{[0, 1].map((item) => <div key={item} className="member-document-card"><Block className="h-7 w-6 shrink-0" /><Lines /></div>)}</div>
+        </>}
+      </div>
+    </main>
+  </div>;
   return (
     <div className="min-h-screen bg-background pt-[68px]">
       <Header reportForLogin={reportForLogin} />
-      <main className="mx-auto w-full max-w-[780px] px-5 py-10 md:px-8 md:py-14">
-        <LoadingState inline title={title} className="mb-8" />
+      <p role="status" className="sr-only">{title}</p>
+      <main aria-busy="true" className="mx-auto w-full max-w-[780px] px-5 py-10 md:px-8 md:py-14">
         <div aria-hidden="true" className="devoir-loading-skeleton"><Skeleton layout={layout} /></div>
       </main>
     </div>

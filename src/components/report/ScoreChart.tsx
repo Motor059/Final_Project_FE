@@ -2,11 +2,13 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import type { RadarAxis } from '@/types/report';
 import { axisLabel, scoreColor, scoreText, scoreValue } from '@/lib/reportDisplay';
 
-export default function ScoreChart({ data }: { data: RadarAxis[] }) {
+const ptAxisLabels: Record<string, string> = { STRUCTURE: '구조·논리 전개', RELEVANCE: '과제 적합성', EVIDENCE: '근거·구체성', DEPTH: '이해 깊이·실행 가능성', DELIVERY: '전달력·설득력', CONSISTENCY: '일관성' };
+
+export default function ScoreChart({ data, isPT = false }: { data: RadarAxis[]; isPT?: boolean }) {
   const chartData = data.map((item, index) => ({
     ...item,
     number: index + 1,
-    label: axisLabel(item.axis, item.label, `평가 항목 ${index + 1}`),
+    label: isPT && !/[가-힣]/.test(item.label) ? ptAxisLabels[item.axis] ?? axisLabel(item.axis, item.label) : axisLabel(item.axis, item.label, `평가 항목 ${index + 1}`),
     score: scoreValue(item.score),
   }));
   const hasAllScores = chartData.length >= 3 && chartData.every((item) => item.score !== null);
@@ -14,7 +16,8 @@ export default function ScoreChart({ data }: { data: RadarAxis[] }) {
 
   return (
     <div>
-      <div className="h-[240px] w-full" aria-hidden="true">
+      <div className="h-[240px] w-full flex items-center justify-center" aria-hidden="true">
+        {isPT ? <PTRadar axes={chartData} hasAllScores={hasAllScores} /> :
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart cx="50%" cy="50%" outerRadius="75%" data={chartData}>
             <PolarGrid gridType="polygon" stroke="#E7E5E4" />
@@ -23,9 +26,9 @@ export default function ScoreChart({ data }: { data: RadarAxis[] }) {
             {hasAllScores && <Radar name="점수" dataKey="score" stroke="#1C1917" strokeWidth={1.8}
               fill="#0A0A0A" fillOpacity={0.05} dot={{ r: 3, fill: '#1C1917', strokeWidth: 0 }} isAnimationActive={false} />}
           </RadarChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer>}
       </div>
-      <p className="mb-3 text-center text-[11px] text-[#A8A29E]">모든 항목은 100점 기준입니다.</p>
+      <p className="mb-3 text-center text-[11px] text-[#A8A29E]">모든 항목은 100점 기준입니다.{isPT ? ' 발표 카드만으로 그려요.' : ''}</p>
       {!hasAllScores && <p className="mb-3 text-center text-xs text-[#78716C]">항목별 점수가 모두 제공되면 그래프가 표시됩니다.</p>}
       <ol className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
         {chartData.map((item) => (
@@ -38,4 +41,27 @@ export default function ScoreChart({ data }: { data: RadarAxis[] }) {
       </ol>
     </div>
   );
+}
+
+function PTRadar({ axes, hasAllScores }: { axes: RadarAxis[]; hasAllScores: boolean }) {
+  const point = (index: number, radius: number): [number, number] => {
+    const angle = -Math.PI / 2 + index * Math.PI * 2 / axes.length;
+    return [150 + Math.cos(angle) * radius, 118 + Math.sin(angle) * radius];
+  };
+  const showPlot = hasAllScores && axes.some((axis) => (axis.score ?? 0) > 0);
+  return <svg viewBox="0 0 300 236" className="h-full max-w-full" aria-hidden="true">
+    {[.2, .4, .6, .8, 1].map((ratio) => <polygon key={ratio} points={axes.map((_, index) => point(index, 88 * ratio).join(',')).join(' ')} fill="none" stroke="#E7E5E4" />)}
+    {axes.map((_, index) => {
+      const [x, y] = point(index, 88);
+      const [labelX, labelY] = point(index, 102);
+      return <g key={index}><line x1={150} y1={118} x2={x} y2={y} stroke="#E7E5E4" /><text x={labelX} y={labelY + 4} textAnchor="middle" fontSize={12} fill="#57534E">{index + 1}</text></g>;
+    })}
+    {showPlot && <>
+      <polygon points={axes.map((axis, index) => point(index, 88 * (axis.score ?? 0) / 100).join(',')).join(' ')} fill="#0A0A0A" fillOpacity={.05} stroke="#1C1917" strokeWidth={1.8} />
+      {axes.map((axis, index) => {
+        const [x, y] = point(index, 88 * (axis.score ?? 0) / 100);
+        return <circle key={index} cx={x} cy={y} r={3} fill="#1C1917" />;
+      })}
+    </>}
+  </svg>;
 }

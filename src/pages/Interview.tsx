@@ -12,6 +12,9 @@ import { ChevronLeft } from "lucide-react";
 import ExitConfirmModal from "@/components/interview/ExitConfirmModal";
 import { useAlertStore } from "@/store/useAlertStore";
 
+import { ensureReportAnalysis } from "@/lib/reportAnalysis";
+import { reportPath, validSessionId } from "@/lib/reportNavigation";
+
 export default function Interview() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,8 +52,9 @@ export default function Interview() {
   }, [routeSessionId, navigate, showAlert, startAndFetchFirstQuestion, detachInterview]);
 
   useEffect(() => {
-    if (isFinished && !isPaused) {
-      navigate('/report', { replace: true, state: { sessionId: routeSessionId } });
+    if (isFinished && !isPaused && validSessionId(routeSessionId)) {
+      ensureReportAnalysis(routeSessionId, { format: 'QA', createIfMissing: true });
+      navigate(reportPath(routeSessionId), { replace: true, state: { sessionId: routeSessionId, interviewType: 'QA', startAnalysis: true } });
     }
   }, [isFinished, isPaused, navigate, routeSessionId]);
 
@@ -61,7 +65,7 @@ export default function Interview() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center pt-[128px]">
-      <Header />   
+      <Header hideBackButton focusLabel={!isFinished ? "일반 면접 진행 중" : undefined} exitDisabled={isExitModalOpen} onExit={() => { setExitTargetPath('/'); setExitModalOpen(true); }} />
       <ExitConfirmModal blocker={blocker} />
       <div className="fixed top-[68px] left-0 z-50 w-full flex flex-col bg-white/80 backdrop-blur-md">
         <header className="relative w-full h-[60px] flex items-center justify-center px-6 md:px-10">

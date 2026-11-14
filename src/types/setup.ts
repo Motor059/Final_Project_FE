@@ -49,16 +49,26 @@ export type GenerationStatus =
 export interface GenerationStatusData {
   status: GenerationStatus;
 }
-export interface InterviewSetup {
+export interface QAInterviewSetup {
   companyType: CompanyType;
   interviewStage: InterviewStage;
-  interviewType?: InterviewType;
+  interviewType?: "QA";
   prepMinutes?: PrepMinutes;
   companyName: string;
   jobRole: string;
   jobDescription: string;
   docId: number | null;
 }
+
+export interface PTInterviewSetup {
+  interviewType: "PT";
+  companyId: number;
+  companyName: string;
+  preparationMinutes: number;
+  jobRole: string;
+}
+
+export type InterviewSetup = QAInterviewSetup | PTInterviewSetup;
 export interface PreparedInterview {
   sessionId: number;
   docId: number | null;
@@ -70,11 +80,11 @@ export interface LastInterviewSetting {
   createdAt: string;
 }
 
-export interface SavedInterviewSetup extends InterviewSetup {
+export type SavedInterviewSetup = InterviewSetup & {
   userId: number | null;
   sessionId: number;
   savedAt: number;
-}
+};
 
 export type InterviewType = "QA" | "PT";
 

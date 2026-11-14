@@ -1,8 +1,11 @@
+import type { PTTrack } from '@/types/pt';
+
 export interface ReportMeta {
+  format?: 'QA' | 'PT';
   companyType: string;
   stage: string;
-  companyName: string;
-  jobTitle: string;
+  companyName: string | null;
+  jobTitle: string | null;
   createdAt: string;
 }
 
@@ -30,43 +33,63 @@ export interface ImprovedAnswer {
 export interface TailQuestion {
   strategy: string;
   question: string;
-  answer: string;
-  good: string;
-  weak: string;
-  next: string;
-  weakAxis: string;
-  improvedAfter: string;
+  answer: string | null;
+  good: string | null;
+  weak: string | null;
+  next: string | null;
+  weakAxis: string | null;
+  improvedAfter: string | null;
+  skipped?: boolean;
+}
+
+export interface PresentationRequirement {
+  requirement: string;
+  status: 'COVERED' | 'PARTIAL' | 'MISSING';
+  evidence: string | null;
+}
+
+export interface ImprovedOutline {
+  before: string[];
+  after: string[];
+}
+
+export interface ScoreBreakdown {
+  presentation: number | null;
+  qaAverage: number | null;
+  presentationWeight: number;
+  qaWeight: number;
 }
 
 export interface FeedbackCardData {
-  questionId: number;
+  cardType?: 'PRESENTATION' | 'QA';
+  status?: 'SCORING' | 'COMPLETED' | 'FAILED';
+  questionId: number | null;
   num: number;
-  shortTitle: string;
+  shortTitle: string | null;
   topicScore: number | null;
   question: string;
-  answer: string;
-  good: string;
-  weak: string;
-  next: string;
-  weakAxis: string;
-  improvedAnswer: ImprovedAnswer;
+  answer: string | null;
+  good: string | null;
+  weak: string | null;
+  next: string | null;
+  weakAxis: string | null;
+  improvedAnswer: ImprovedAnswer | null;
   tails: TailQuestion[];
-}
-
-export interface DeliveryInfo {
-  speechSpeed: string | null;
-  speechSpeedNote: string | null;
-  fillerWordCount: number | null;
-  fillerWordNote: string | null;
+  skipped?: boolean;
+  durationSeconds?: number | null;
+  track?: PTTrack | null;
+  requirements?: PresentationRequirement[];
+  improvedOutline?: ImprovedOutline | null;
 }
 
 export interface ReportResponseData {
   sessionId: number;
+  status?: 'SCORING' | 'COMPLETED';
   meta: ReportMeta;
-  keyCoaching: KeyCoaching;
+  keyCoaching: KeyCoaching | null;
   totalScore: number | null;
-  verdict: string;
-  radar: RadarData;
+  scoreBreakdown?: ScoreBreakdown | null;
+  verdict: string | null;
+  radar: RadarData | null;
   cards: FeedbackCardData[];
-  delivery?: DeliveryInfo | null;
 }

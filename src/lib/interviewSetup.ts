@@ -7,6 +7,16 @@ const optionalText = (value: unknown) => typeof value === 'string' ? value : '';
 export function parseInterviewSetup(value: unknown): InterviewSetup | null {
   if (typeof value !== 'object' || value === null) return null;
   const item = value as Record<string, unknown>;
+  if (item.interviewType === 'PT' || item.format === 'PT') {
+    if (!positiveId(item.companyId) || !positiveId(item.preparationMinutes)) return null;
+    return {
+      interviewType: 'PT',
+      companyId: item.companyId,
+      companyName: optionalText(item.companyName),
+      preparationMinutes: item.preparationMinutes,
+      jobRole: optionalText(item.jobRole),
+    };
+  }
   const companyType = item.companyType;
   const interviewStage = item.interviewStage;
   if (companyType !== 'BIG_TECH_SW' && companyType !== 'SERVICE' && companyType !== 'FINANCE_IT') return null;
@@ -14,7 +24,7 @@ export function parseInterviewSetup(value: unknown): InterviewSetup | null {
   return {
     companyType,
     interviewStage,
-    interviewType: item.interviewType === 'PT' ? 'PT' : 'QA',
+    interviewType: 'QA',
     prepMinutes:
       item.prepMinutes === 10 ||
         item.prepMinutes === 20 ||

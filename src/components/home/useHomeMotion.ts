@@ -5,19 +5,24 @@ export default function useHomeMotion(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const home = ref.current;
     if (!home) return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const cleanups: (() => void)[] = [];
     const frames = new Set<number>();
 
-    if (!reduce && 'IntersectionObserver' in window) {
+    if ('IntersectionObserver' in window) {
       home.dataset.motion = 'on';
       const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
         entry.target.classList.add('dv-in', 'dv-sw-in');
         observer.unobserve(entry.target);
-      }), { threshold: .12, rootMargin: '0px 0px -6% 0px' });
+      }), { threshold: 0, rootMargin: '0px 0px -24px 0px' });
       home.querySelectorAll('.dv-reveal,.dv-section-heading').forEach((element) => observer.observe(element));
-      cleanups.push(() => { observer.disconnect(); delete home.dataset.motion; });
+      const fallback = window.setTimeout(() => {
+        home.querySelectorAll('.dv-reveal,.dv-section-heading').forEach((element) => {
+          const rect = element.getBoundingClientRect();
+          if (rect.top < window.innerHeight && rect.bottom > 0) element.classList.add('dv-in', 'dv-sw-in');
+        });
+      }, 1500);
+      cleanups.push(() => { observer.disconnect(); clearTimeout(fallback); delete home.dataset.motion; });
 
       const counters = new IntersectionObserver((entries) => entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
@@ -42,7 +47,7 @@ export default function useHomeMotion(ref: RefObject<HTMLElement | null>) {
       cleanups.push(() => counters.disconnect());
     }
 
-    if (!reduce && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
       home.querySelectorAll<HTMLElement>('.dv-card').forEach((card) => {
         card.classList.add('dv-tilt');
         const move = (event: PointerEvent) => {

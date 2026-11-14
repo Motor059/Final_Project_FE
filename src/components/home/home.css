@@ -19,7 +19,7 @@
 .devoir-home .dv-d4{animation-delay:.42s}
 .devoir-home .dv-reveal{opacity:1}
 .devoir-home[data-motion="on"] .dv-reveal{opacity:0}
-.devoir-home[data-motion="on"] .dv-reveal.dv-in{animation:devoirHomeUp .7s cubic-bezier(.2,.7,.2,1) both}
+.devoir-home[data-motion="on"] .dv-reveal.dv-in{animation:devoirHomeUp .7s cubic-bezier(.2,.7,.2,1) backwards}
 .devoir-home[data-motion="on"] .dv-reveal.dv-in{opacity:1}
 .devoir-home .dv-track{display:flex;width:max-content;animation:devoirHomeMarquee 34s linear infinite;will-change:transform}
 .devoir-home .dv-track-group{display:flex;align-items:center;flex:none;gap:64px;padding-right:64px}
@@ -149,6 +149,64 @@
 .devoir-home .dv-hero-hint{font-size:13.5px;color:#8A857D}
 .devoir-home .dv-hero-glow{position:absolute;left:50%;top:-220px;transform:translateX(-50%);width:1500px;max-width:160vw;height:900px;pointer-events:none;background:radial-gradient(38% 44% at 68% 30%,rgba(139,124,255,.20),transparent 72%),radial-gradient(40% 44% at 30% 34%,rgba(124,196,255,.18),transparent 72%),radial-gradient(48% 46% at 52% 86%,rgba(124,224,195,.16),transparent 75%);filter:blur(18px)}
 .devoir-home .dv-hero-noise{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.3;mix-blend-mode:multiply}
+.devoir-home .dv-preview-description{display:flex;align-items:center;gap:14px;color:#57534e;font-size:14px;flex-wrap:wrap}
+.devoir-home .dv-demo-wave{height:38px;display:flex;align-items:center;justify-content:center;gap:4px}
+.devoir-home .dv-demo-wave i{width:3px;border-radius:4px;background:#a8a29e;transition:transform .3s,background .3s;transform:scaleY(.18);transform-origin:center}
+.devoir-home .dv-demo-wave.is-recording i{background:#1c1917;transform:scaleY(1);animation:devoirHomeBar .8s ease-in-out infinite}
+.devoir-home .dv-demo-answer-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;font-size:11px;color:#8a857d}
+.devoir-home .dv-demo-answer-heading .is-live{color:#1c1917}
+.devoir-home .dv-demo-answer-heading .is-live::before{content:'';display:inline-block;width:6px;height:6px;background:#e5484d;border-radius:50%;margin-right:5px;animation:devoirHomeBlink 1.2s infinite}
+.devoir-home .dv-answer{min-height:48px;text-wrap:pretty;white-space:normal;overflow-wrap:anywhere}
+.devoir-home .dv-word{white-space:pre-wrap}
+.devoir-home .dv-pt-preview{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;padding:4px 24px 24px;height:540px;text-align:left}
+.devoir-home .dv-pt-preview-task{min-width:0;min-height:0;overflow:hidden;border-radius:24px;background:#f6f6f4;position:relative}
+.devoir-home .dv-pt-preview-task::after{content:'';position:absolute;left:0;right:0;bottom:0;height:46px;pointer-events:none;background:linear-gradient(transparent,#f6f6f4)}
+.devoir-home .dv-pt-preview-scroll{position:relative;height:100%;overflow-y:auto;scrollbar-width:none;padding:24px 26px 80px;overscroll-behavior:contain}
+.devoir-home .dv-pt-preview-scroll::-webkit-scrollbar{display:none}
+.devoir-home .dv-pt-task-content{display:flex;flex-direction:column;gap:22px;min-width:0}
+.devoir-home .dv-pt-task-content h3{margin:0;font-size:21px;font-weight:700;line-height:1.35;letter-spacing:-.025em;word-break:keep-all}
+.devoir-home .dv-pt-virtual{display:flex;flex-wrap:wrap;gap:5px 10px;font-size:12.5px;line-height:1.6;border:1px solid #e7e5e4;border-radius:12px;padding:9px 12px;margin-top:14px;color:#8a857d}
+.devoir-home .dv-pt-virtual b{color:#57534e}
+.devoir-home .dv-pt-task-content section{display:flex;flex-direction:column;gap:8px}
+.devoir-home .dv-pt-task-content h4{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;color:#8a857d;font-size:12px;font-weight:650}
+.devoir-home .dv-pt-task-content h4 em{font-size:10.5px;font-style:normal;color:#57534e}
+.devoir-home .dv-pt-task-content p{margin:0;font-size:13.5px;line-height:1.65;color:#1c1917;word-break:keep-all}
+.devoir-home .dv-pt-steps,.devoir-home .dv-pt-problems{list-style:none;padding:0;margin:0;counter-reset:demo-task}
+.devoir-home .dv-pt-steps li,.devoir-home .dv-pt-problems li{position:relative;padding:0 0 12px 28px;font-size:13.5px;line-height:1.65;counter-increment:demo-task}
+.devoir-home .dv-pt-steps li::before,.devoir-home .dv-pt-problems li::before{content:counter(demo-task);position:absolute;left:0;top:1px;width:19px;height:19px;display:grid;place-items:center;background:#fff;border-radius:50%;font-size:10px;color:#8a857d}
+.devoir-home .dv-pt-steps li b,.devoir-home .dv-pt-problems li b{display:block;font-weight:600;color:#1c1917}
+.devoir-home .dv-pt-steps li span,.devoir-home .dv-pt-problems li span{display:block;color:#8a857d;font-size:12.5px}
+.devoir-home .dv-pt-problems li{border-radius:12px;padding-top:8px;padding-right:10px;margin-bottom:4px;transition:background .45s,box-shadow .45s}
+.devoir-home .dv-pt-problems li::before{top:10px}
+.devoir-home .dv-pt-problems li.highlight{background:#fff;box-shadow:0 0 0 1px #e2ddd5}
+.devoir-home .dv-pt-data{border:1px solid #e7e5e4;border-radius:16px;background:#fff;overflow:hidden}
+.devoir-home .dv-pt-data>div{display:grid;grid-template-columns:96px minmax(0,1fr) 68px;gap:8px;padding:10px 12px;font-size:13px;line-height:1.65}
+.devoir-home .dv-pt-data>div+div{border-top:1px solid #ecebe8}
+.devoir-home .dv-pt-data b{font-weight:600;color:#1c1917}
+.devoir-home .dv-pt-data small{display:block;color:#8a857d;font-size:12px}
+.devoir-home .dv-pt-data em{align-self:start;justify-self:end;white-space:nowrap;background:#f4f3f1;border-radius:5px;padding:0 6px;font-style:normal;font-size:11px;color:#57534e}
+.devoir-home .dv-pt-constraints{list-style:disc;margin:0;padding-left:20px;color:#1c1917;font-size:13.5px;line-height:1.8;word-break:keep-all}
+.devoir-home .dv-pt-constraints li+li{margin-top:10px}
+.devoir-home .dv-pt-assumptions{display:flex;flex-wrap:wrap;gap:8px}
+.devoir-home .dv-pt-assumptions>span{background:#fff;border-radius:12px;padding:8px 11px;font-size:13px;color:#1c1917}
+.devoir-home .dv-pt-assumptions small{display:block;font-size:11.5px;color:#8a857d}
+.devoir-home .dv-pt-preview-side{display:flex;flex-direction:column;gap:14px;min-width:0;min-height:0}
+.devoir-home .dv-pt-preview-card{border:1px solid #ecebe8;border-radius:20px;padding:16px 18px;background:#fff;min-width:0}
+.devoir-home .dv-pt-card-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.devoir-home .dv-pt-card-heading b{font-size:14.5px;font-weight:650}
+.devoir-home .dv-pt-card-heading>span{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#8a857d}
+.devoir-home .dv-pt-preview-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.devoir-home .dv-pt-preview-fields button{min-width:0;text-align:center;font-size:13.5px;font-weight:600;padding:9px 4px;border-radius:12px;border:1.5px solid #e7e5e4;background:#fff;color:#0a0a0a;cursor:pointer;transition:background .3s,color .3s,border-color .3s}
+.devoir-home .dv-pt-preview-fields button.on{background:#0a0a0a;border-color:#0a0a0a;color:#fff}
+.devoir-home .dv-pt-preview-guide{margin:10px 0 0;font-size:12.5px;line-height:1.55;color:#57534e;min-height:2.6em;word-break:keep-all;animation:devoirHomeVin .3s both}
+.devoir-home .dv-pt-preview-guide b{color:#0a0a0a}
+.devoir-home .dv-pt-preview-memo{flex:1;display:flex;flex-direction:column;min-height:0}
+.devoir-home .dv-pt-preview-memo>p{flex:1;min-height:0;margin:0;padding:14px 16px;border:1px solid #f0efed;border-radius:14px;background:#fafaf9;font-size:14px;line-height:1.75;color:#1c1917;white-space:pre-wrap;word-break:keep-all;overflow:hidden}
+.devoir-home .dv-pt-preview-memo>p.is-placeholder{color:#a8a29e}
+.devoir-home .dv-stage[data-demo-playing="false"] .dv-demo-wave i,.devoir-home .dv-stage[data-demo-playing="false"] .dv-thinking i,.devoir-home .dv-stage[data-demo-playing="false"] .dv-caret{animation-play-state:paused}
+@media(max-width:760px){.devoir-home .dv-pt-preview{grid-template-columns:1fr;height:auto;padding:2px 14px 16px}.devoir-home .dv-pt-preview-task{height:300px}.devoir-home .dv-pt-preview-scroll{padding:20px 20px 60px}.devoir-home .dv-pt-preview-memo>p{min-height:210px}.devoir-home .dv-pt-data>div{grid-template-columns:78px minmax(0,1fr) 56px}}
+@media(max-width:480px){.devoir-home .dv-preview-description{font-size:12px;gap:8px}.devoir-home .dv-preview-progress{font-size:11px}.devoir-home .dv-pt-card-heading>span{font-size:10px}.devoir-home .dv-pt-preview-fields button{font-size:12px}.devoir-home .dv-pt-data>div{grid-template-columns:68px minmax(0,1fr);font-size:12px}.devoir-home .dv-pt-data em{grid-column:2;justify-self:start}.devoir-home .dv-answer{font-size:13px}.devoir-home .dv-pt-preview-card{padding:14px}}
+
 .devoir-home .dv-preview{position:relative;padding:24px 0 56px}
 .devoir-home .dv-preview-tabs{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;padding:4px 8px 18px}
 .devoir-home .dv-preview-tablist{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -170,8 +228,5 @@
 .devoir-home .dv-footer-copyright{margin-top:28px;font-size:13px;color:#B0ABA3}
 .devoir-home .dv-btn-ghost:disabled{cursor:default;opacity:.45;transform:none}
 @media(max-width:640px){.devoir-home #start>.wrap>div{padding:48px 24px!important;border-radius:28px!important}.devoir-home #start h2{font-size:clamp(24px,6.2vw,34px)!important}.devoir-home .dv-hero-title>span:last-child{white-space:normal!important}.devoir-home .dv-footer-brand{flex-wrap:wrap;gap:12px}}
-@media(prefers-reduced-motion:reduce){.devoir-home .dv-up,.devoir-home .dv-w,.devoir-home .dv-in,.devoir-home .dv-seq>div,.devoir-home .dv-coach,.devoir-home .dv-caret{animation:none!important}.devoir-home .dv-reveal,.devoir-home .dv-sw,.devoir-home .dv-seq>div{opacity:1!important;transform:none!important;filter:none!important}.devoir-home .dv-coach{clip-path:none!important}.devoir-home *{scroll-behavior:auto!important;transition-duration:0s!important}}
 
 .devoir-home .dv-company-intro>span{display:block}
-@keyframes devoirHomeBarGentle{0%,100%{transform:scaleY(.7)}50%{transform:scaleY(1)}}
-@media(prefers-reduced-motion:reduce){.devoir-home .dv-track{animation-duration:68s}.devoir-home .dv-bar{animation-name:devoirHomeBarGentle;animation-duration:2s!important}}

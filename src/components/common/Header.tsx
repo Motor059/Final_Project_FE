@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,13 +16,33 @@ const navigation = [
   { path: "/history", label: "히스토리" },
 ];
 
-export default function Header({ reportForLogin }: { reportForLogin?: ReportResponseData } = {}) {
+export default function Header({ reportForLogin, hideBackButton: hideBack = false, focusLabel, onExit, exitDisabled = false }: { reportForLogin?: ReportResponseData; hideBackButton?: boolean; focusLabel?: string; onExit?: () => void; exitDisabled?: boolean } = {}) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 8);
+
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      setScrolled(window.scrollY > 8);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pageshow", update);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pageshow", update);
+    };
+  }, [location.pathname]);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const user = useAuthStore((state) => state.user);
   const showAlert = useAlertStore((state) => state.showAlert);
-  const hideBackButton = location.pathname === "/" || location.pathname === "/interview";
+  const hideBackButton = hideBack || location.pathname === "/" || location.pathname === "/interview";
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>, path: string) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -45,11 +65,11 @@ export default function Header({ reportForLogin }: { reportForLogin?: ReportResp
 
   return (
     <>
-      <header className={`devoir-header ${isLoggedIn ? "has-member-navigation" : ""}`}>
+      <header className={`devoir-header ${isLoggedIn ? "has-member-navigation" : ""}${scrolled ? " is-scrolled" : ""}`}>
         <Link to="/" className="devoir-header-logo" aria-label="Devoir 홈" onClick={(event) => handleNavigation(event, "/")}>
           <img src="/devoir-logo.svg" alt="devoir" width="113" height="24" />
         </Link>
-        {isLoggedIn ? (
+        {focusLabel ? <div className="devoir-header-focus"><span className="devoir-header-focus-label">{focusLabel}</span><button type="button" className="devoir-header-focus-exit" disabled={exitDisabled} onClick={onExit}>면접 종료</button></div> : isLoggedIn ? (
           <div className="devoir-header-actions">
             <nav className="devoir-header-navigation" aria-label="주 메뉴">
               {navigation.map((item) => <Link key={item.path} to={item.path} className={`devoir-header-link ${isCurrent(item.path) ? "is-current" : ""}`} aria-current={isCurrent(item.path) ? "page" : undefined} onClick={(event) => handleNavigation(event, item.path)}>{item.label}</Link>)}

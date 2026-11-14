@@ -49,14 +49,14 @@ export const useArchivePreviewStore = create<ArchivePreviewState>((set, get) => 
       questions: questions.map((text, index) => ({ id: `preview-question-${number}-${index}`, text, likes: 0 })),
     };
     set({ companies: existing ? current.companies : [...current.companies, company], records: [record, ...current.records], addedCount: current.addedCount + questions.length });
-    get().notify(`미리보기에 질문 ${questions.length}개를 추가했어요.`);
+    get().notify(`질문 ${questions.length}개를 등록했어요.`);
     return true;
   },
   reportRecord: (id) => {
     const record = get().records.find((item) => item.id === id);
     if (!record || record.mine || record.reported) return;
     set((previous) => ({ records: previous.records.map((item) => item.id === id ? { ...item, reported: true } : item) }));
-    get().notify("신고 상태를 표시했어요. 실제 전송은 하지 않아요.");
+    get().notify("신고한 면접으로 표시했어요.");
   },
   deleteRecord: (id) => {
     const current = get();
@@ -65,6 +65,6 @@ export const useArchivePreviewStore = create<ArchivePreviewState>((set, get) => 
     const liked = { ...current.liked };
     for (const question of record.questions) delete liked[question.id];
     set({ records: current.records.filter((item) => item.id !== id), liked });
-    get().notify(`미리보기에서 질문 ${record.questions.length}개를 삭제했어요.`);
+    get().notify(`질문 ${record.questions.length}개를 삭제했어요.`);
   },
 }));

@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 import AdvancedSetting from "@/components/setup/AdvancedSetting";
 import SelectionCard from "@/components/setup/SelectionCard";
+import InterviewSetupLayout from "@/components/setup/InterviewSetupLayout";
+import PTSetupForm from "@/components/setup/PTSetupForm";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/common/Header";
 import LoadingState, { LoadingIndicator } from "@/components/common/LoadingState";
@@ -18,7 +20,6 @@ import type {
   InterviewStage,
   InterviewSetup,
   InterviewType,
-  PrepMinutes,
 } from "@/types/setup";
 
 import { parseInterviewSetup, saveInterviewSetup } from '@/lib/interviewSetup';
@@ -29,6 +30,7 @@ export default function Setup() {
 }
 
 function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
+  const qaSetup = initialSetup?.interviewType === "PT" ? null : initialSetup;
   const navigate = useNavigate();
   const { resetInterview } = useInterviewStore();
   const showAlert = useAlertStore((state) => state.showAlert);
@@ -59,29 +61,25 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
   } = useDocuments(isLoggedIn);
 
   const [companyType, setCompanyType] = useState<CompanyType | null>(
-    initialSetup?.companyType || null
+    qaSetup?.companyType || null
   );
 
   const [interviewStage, setInterviewStage] = useState<InterviewStage | null>(
-    initialSetup?.interviewStage || null
+    qaSetup?.interviewStage || null
   );
 
   const [interviewType, setInterviewType] = useState<InterviewType>(
     initialSetup?.interviewType ?? "QA"
   );
 
-  const [prepMinutes, setPrepMinutes] = useState<PrepMinutes>(
-    initialSetup?.prepMinutes ?? 20
-  );
-
-  const [jobRole, setJobRole] = useState(initialSetup?.jobRole || "");
-  const [companyName, setCompanyName] = useState(initialSetup?.companyName || "");
+  const [jobRole, setJobRole] = useState(qaSetup?.jobRole || "");
+  const [companyName, setCompanyName] = useState(qaSetup?.companyName || "");
   const [jobDescription, setJobDescription] = useState(
-    initialSetup?.jobDescription || ""
+    qaSetup?.jobDescription || ""
   );
   const [githubUrl, setGithubUrl] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
-  const [selectedDocId, setSelectedDocId] = useState<number | null>(initialSetup?.docId ?? null);
+  const [selectedDocId, setSelectedDocId] = useState<number | null>(qaSetup?.docId ?? null);
 
   const isRestoringDocument =
     selectedDocId !== null && isLoggedIn && isDocumentsLoading;
@@ -122,8 +120,7 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
         {
           companyType,
           interviewStage,
-          interviewType,
-          ...(interviewType === "PT" ? { prepMinutes } : {}),
+          interviewType: "QA",
           companyName: companyName.trim() || undefined,
           jobRole: jobRole.trim() || undefined,
           jobDescription: jobDescription.trim() || undefined,
@@ -142,8 +139,7 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
         saveInterviewSetup({
           companyType,
           interviewStage,
-          interviewType,
-          prepMinutes,
+          interviewType: "QA",
           companyName: companyName.trim(),
           jobRole: jobRole.trim(),
           jobDescription: jobDescription.trim(),
@@ -153,16 +149,8 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
 
       sessionStorage.setItem("interviewSessionId", String(sessionId));
 
-      if (interviewType === "PT") {
-        sessionStorage.setItem("ptPreparationSessionId", String(sessionId));
-      } else {
-        sessionStorage.removeItem("ptPreparationSessionId");
-      }
-
-      navigate(
-        interviewType === "PT" ? "/pt/preparation" : "/interview",
-        { state: { sessionId } },
-      );
+      sessionStorage.removeItem("ptPreparationSessionId");
+      navigate("/interview", { state: { sessionId } });
     } catch (error) {
       if (!mountedRef.current || (error instanceof DOMException && error.name === "AbortError")) return;
       console.error("모의면접 시작 실패:", error);
@@ -171,6 +159,10 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
       startRequestedRef.current = false;
     }
   };
+
+  if (interviewType === "PT") {
+    return <PTSetupForm initialSetup={initialSetup?.interviewType === "PT" ? initialSetup : null} onSelectQA={() => setInterviewType("QA")} />;
+  }
 
   if (isOptionsLoading) {
     return <PageLoading layout="setup" title="면접 설정을 불러오고 있어요" />;
@@ -185,196 +177,26 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
             <p className="text-[14px] text-muted-foreground">
               면접 설정을 불러오지 못했습니다.
             </p>
+            <Button type="button" variant="outline" className="mt-4" onClick={() => setInterviewType("PT")}>PT 면접 설정</Button>
           </div>
         </main>
       </>
     );
   }
 
-  return (
-    <>
-      <Header />
-      <main className="min-h-screen bg-background pt-[68px]">
-        <div className="mx-auto w-full max-w-[760px] px-5 pb-28 pt-12 sm:px-10 sm:pt-14">
-          <header className="mb-11">
-            <p className="mb-2.5 text-[13px] font-medium text-muted-foreground">
-              모의면접 설정
-            </p>
-            <h1 className="text-[34px] font-medium leading-[1.08] tracking-[-0.02em] text-foreground sm:text-[40px]">
-              어떤 면접을 연습할까요?
-            </h1>
-            <p className="mt-2 text-[15px] leading-6 text-muted-foreground">
-              기업 유형과 면접 단계를 선택하면 질문과 평가 기준을 맞춰드려요.
-            </p>
-          </header>
-
-          <fieldset
-            disabled={isStarting}
-            inert={isStarting}
-            aria-busy={isStarting}
-            className={`space-y-10 min-w-0 border-0 p-0 ${isStarting ? "opacity-60" : ""}`}
-          >
-            <section>
-              <div className="mb-4">
-                <h2 className="text-[14px] font-semibold text-foreground">
-                  면접 유형
-                </h2>
-                <p className="mt-1 text-[12.5px] text-muted-foreground">
-                  연습하고 싶은 면접 방식을 선택해 주세요.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <SelectionCard
-                  title="일반 면접"
-                  description="질문에 답변하는 일반적인 모의면접"
-                  selected={interviewType === "QA"}
-                  onClick={() => setInterviewType("QA")}
-                />
-
-                <SelectionCard
-                  title="PT 면접"
-                  description="주제를 준비하고 발표하는 기술 PT 면접"
-                  selected={interviewType === "PT"}
-                  onClick={() => {
-                    setInterviewType("PT");
-                    setInterviewStage("TECHNICAL");
-                  }}
-                />
-              </div>
-            </section>
-            <section>
-              <div className="mb-4">
-                <h2 className="text-[14px] font-semibold text-foreground">
-                  기업 유형
-                </h2>
-                <p className="mt-1 text-[12.5px] text-muted-foreground">
-                  지원하려는 기업과 가장 가까운 유형을 선택해 주세요.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                {options.companyTypes?.map((item) => (
-                  <SelectionCard
-                    key={item.code}
-                    title={item.label}
-                    description={item.example}
-                    selected={companyType === item.code}
-                    onClick={() => setCompanyType(item.code)}
-                  />
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <div className="mb-4">
-                <h2 className="text-[14px] font-semibold text-foreground">
-                  면접 단계
-                </h2>
-                <p className="mt-1 text-[12.5px] text-muted-foreground">
-                  준비하고 싶은 면접 단계를 선택해 주세요.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {options.stages
-                  ?.filter(
-                    (item) =>
-                      interviewType === "QA" || item.code === "TECHNICAL",
-                  )
-                  .map((item) => (
-                    <SelectionCard
-                      key={item.code}
-                      title={item.label}
-                      selected={interviewStage === item.code}
-                      onClick={() => setInterviewStage(item.code)}
-                      disabled={interviewType === "PT"}
-                    />
-                  ))}
-              </div>
-            </section>
-
-            {interviewType === "PT" && (
-              <section>
-                <div className="mb-4">
-                  <h2 className="text-[14px] font-semibold text-foreground">
-                    PT 준비 시간
-                  </h2>
-                  <p className="mt-1 text-[12.5px] text-muted-foreground">
-                    발표 주제를 준비할 시간을 선택해 주세요.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  {([10, 20, 30] as const).map((minutes) => (
-                    <SelectionCard
-                      key={minutes}
-                      title={`${minutes}분`}
-                      selected={prepMinutes === minutes}
-                      onClick={() => setPrepMinutes(minutes)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <AdvancedSetting
-              canUseDocuments={isLoggedIn}
-              jobRole={jobRole}
-              jobRoleOptions={options.jobRoleChips}
-              companyName={companyName}
-              jobDescription={jobDescription}
-              githubUrl={githubUrl}
-              documentFile={documentFile}
-              onJobRoleChange={setJobRole}
-              onCompanyNameChange={setCompanyName}
-              onJobDescriptionChange={setJobDescription}
-              onGithubUrlChange={setGithubUrl}
-              onDocumentFileChange={setDocumentFile}
-              documents={documents}
-              selectedDocId={availableDocId}
-              initiallyOpen={!!initialSetup && !!(initialSetup.jobRole || initialSetup.companyName || initialSetup.jobDescription || initialSetup.docId)}
-              onSelectedDocIdChange={setSelectedDocId}
-            />
-            {isRestoringDocument && <LoadingState inline title="이전 설정의 서류를 확인하고 있어요" />}
-            {isPreviousDocumentUnavailable && (
-              <p className="text-[12.5px] text-destructive" role="status">
-                이전 설정의 서류를 사용할 수 없습니다. 서류를 다시 선택하거나 서류 없이 시작해 주세요.
-              </p>
-            )}
-          </fieldset>
-
-          {isError && (
-            <p className="mt-5 text-center text-[12.5px] text-destructive">
-              {errorMessage || "요청 처리 중 문제가 발생했습니다."}
-            </p>
-          )}
-
-          <div className="sticky bottom-0 mt-9 bg-gradient-to-t from-background via-background to-transparent pb-1 pt-6">
-            <Button
-              type="button"
-              onClick={handleStart}
-              disabled={!canStart}
-              className="h-12 w-full rounded-xl text-[15px] font-semibold"
-            >
-              {isStarting ? (
-                <span className="flex items-center gap-2">
-                  <LoadingIndicator size="sm" />
-                  면접 준비 중
-                </span>
-              ) : (
-                "모의면접 시작"
-              )}
-            </Button>
-
-            {!canStart && !isStarting && (
-              <p className="mt-2.5 text-center text-[12.5px] text-muted-foreground">
-                기업 유형과 면접 단계를 선택하면 시작할 수 있어요.
-              </p>
-            )}
-          </div>
-        </div>
-      </main>
-    </>
-  );
+  const companyDetails: Record<string, string> = { BIG_TECH_SW: "인성, 직무 PT, 임원 면접", SERVICE: "기술 심화, 라이브 코딩, 컬처핏", FINANCE_IT: "기술, 금융 도메인, 보안과 규제" };
+  const stageDescriptions: Record<string, string> = { TECHNICAL: "CS 기초, 프로젝트, 기술 선택 이유", PERSONALITY: "경험, 협업, 지원 동기" };
+  return <InterviewSetupLayout type="QA" locked={isStarting} onTypeChange={setInterviewType} footer={<div className="submitbar">
+    <button type="button" className="btn ink" onClick={() => { void handleStart(); }} disabled={!canStart}>{isStarting ? <><LoadingIndicator size="sm" />면접 준비 중</> : "면접 시작하기"}</button>
+    <span className="hint pt-submit-hint">기업 유형과 면접 단계를 고르면 시작할 수 있어요</span>
+  </div>}>
+    <div className="su-sub">
+      <div className="field"><div className="fl"><span className="req">필수</span>기업 유형</div><div className="opts c3">{options.companyTypes?.map((item) => <SelectionCard reference key={item.code} title={item.label} description={item.example} detail={companyDetails[item.code]} selected={companyType === item.code} onClick={() => setCompanyType(item.code)} />)}</div></div>
+      <div className="field"><div className="fl"><span className="req">필수</span>면접 단계</div><div className="opts c2">{options.stages?.map((item) => <SelectionCard reference key={item.code} title={item.label} description={stageDescriptions[item.code]} selected={interviewStage === item.code} onClick={() => setInterviewStage(item.code)} />)}</div></div>
+      <AdvancedSetting canUseDocuments={isLoggedIn} jobRole={jobRole} jobRoleOptions={options.jobRoleChips} companyName={companyName} jobDescription={jobDescription} githubUrl={githubUrl} documentFile={documentFile} onJobRoleChange={setJobRole} onCompanyNameChange={setCompanyName} onJobDescriptionChange={setJobDescription} onGithubUrlChange={setGithubUrl} onDocumentFileChange={setDocumentFile} documents={documents} selectedDocId={availableDocId} initiallyOpen={!!qaSetup && !!(qaSetup.jobRole || qaSetup.companyName || qaSetup.jobDescription || qaSetup.docId)} onSelectedDocIdChange={setSelectedDocId} />
+      {isRestoringDocument && <LoadingState inline title="이전 설정의 서류를 확인하고 있어요" />}
+      {isPreviousDocumentUnavailable && <p className="hint pt-danger" role="status">이전 설정의 서류를 사용할 수 없습니다. 서류를 다시 선택하거나 서류 없이 시작해 주세요.</p>}
+    </div>
+    {isError && <div className="pt-err" role="alert">{errorMessage || "요청 처리 중 문제가 발생했습니다."}</div>}
+  </InterviewSetupLayout>;
 }
