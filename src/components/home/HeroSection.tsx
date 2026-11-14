@@ -15,7 +15,9 @@ export default function HeroSection({ isLoggedIn, userName, userId, lastSetting 
   const savedSetup = isLoggedIn && userId ? readSavedInterviewSetup(userId) : null;
   const retrySetup = isLoggedIn ? chooseLastInterviewSetup(savedSetup, lastSetting || null) : null;
   const settingLabel = retrySetup
-    ? `${companyTypeLabel(retrySetup.companyType)}, ${retrySetup.interviewStage === 'TECHNICAL' ? '기술' : '인성'}`
+    ? retrySetup.interviewType === 'PT'
+      ? `${retrySetup.companyName || 'PT 면접'}, 준비 ${retrySetup.preparationMinutes}분`
+      : `${companyTypeLabel(retrySetup.companyType)}, ${retrySetup.interviewStage === 'TECHNICAL' ? '기술' : '인성'}`
     : null;
 
   const handleRetry = () => {
@@ -47,7 +49,7 @@ export default function HeroSection({ isLoggedIn, userName, userId, lastSetting 
             )}
           </div>
           <span className="dv-up dv-d3 dv-hero-hint">
-            {retrySetup ? '마지막 설정은 지난번 면접의 기업 유형과 면접 단계 그대로 시작해요' : '첫 모의면접 설정을 시작해 보세요!'}
+            {retrySetup ? '지난번에 선택한 면접 설정을 다시 사용할 수 있어요' : '첫 모의면접 설정을 시작해 보세요!'}
           </span>
         </div>
       ) : (

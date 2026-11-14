@@ -39,7 +39,6 @@ export default function QuestionOrb() {
         currentIndex++;
         setTypedQuestion({ questionId, attempt: recordingAttempt, content, text: characters.slice(0, currentIndex).join('') });
       } else {
-        // 마지막 글자가 표시된 다음 틱에서 질문 표시 완료를 알린다.
         clearInterval(typingInterval);
         state.completeQuestionPresentation(questionId, recordingAttempt, 'TEXT');
       }
@@ -51,7 +50,6 @@ export default function QuestionOrb() {
     };
   }, [currentQuestion?.questionId, currentQuestion?.content, recordingAttempt, phase]);
 
-  // OrbEngine 생성 (캔버스가 마운트된 직후 1회만 생성)
   useEffect(() => {
     if (!canvasRef.current) return;
     const engine = new OrbEngine(canvasRef.current, bgRef.current);
@@ -62,7 +60,6 @@ export default function QuestionOrb() {
     };
   }, []);
 
-  // 상태 변경 시 엔진에 상태값만 주입
   useEffect(() => {
     if (!engineRef.current) return;
     

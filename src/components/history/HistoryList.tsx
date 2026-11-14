@@ -1,107 +1,31 @@
 import { scoreText, scoreValue } from "@/lib/reportDisplay";
 
 export interface InterviewHistoryItem {
-  id: number;
-  interviewType?: "QA" | "PT";
-  date: string;
-  company: string;
-  role: string;
-  stage: string;
-  totalScore: number | null;
+  id: number; interviewType?: "QA" | "PT"; date: string; company: string;
+  role: string; stage: string; totalScore: number | null;
 }
+interface HistoryListProps { items: InterviewHistoryItem[]; onSelect: (id: number) => void; emptyMessage?: string; }
 
-interface HistoryListProps {
-  items: InterviewHistoryItem[];
-  onSelect: (id: number) => void;
-  emptyMessage?: string;
-}
+export default function HistoryList({ items, onSelect, emptyMessage }: HistoryListProps) {
+  if (!items.length) return <div className="member-empty-state">
+    <p>{emptyMessage ?? "아직 저장된 면접 기록이 없어요."}</p>
+    <p className="member-empty-caption">모의면접을 완료하면 이곳에서 다시 확인할 수 있어요.</p>
+  </div>;
 
-export default function HistoryList({
-  items,
-  onSelect,
-  emptyMessage,
-}: HistoryListProps) {
-  if (items.length === 0) {
-    return (
-      <section className="rounded-xl border border-dashed border-border bg-muted/40 px-6 py-14 text-center">
-        <p className="text-[14px] font-medium text-foreground">
-          {emptyMessage ?? "아직 저장된 면접 기록이 없어요."}
-        </p>
-
-        <p className="mt-2 text-[12.5px] text-muted-foreground">
-          모의면접을 완료하면 이곳에서 다시 확인할 수 있어요.
-        </p>
-      </section>
-    );
-  }
-
-  return (
-    <section>
-      <p className="mb-3 text-[13px] font-semibold text-muted-foreground">
-        지난 면접
-      </p>
-
-      <div className="overflow-hidden rounded-xl border border-border bg-background">
-        {items.map((item, index) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onSelect(item.id)}
-            className={[
-              "flex w-full items-center justify-between gap-5 px-5 py-5 text-left",
-              "transition-colors hover:bg-muted/60",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-              index !== items.length - 1
-                ? "border-b border-border"
-                : "",
-            ].join(" ")}
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-[12px] font-medium text-muted-foreground">
-                  {item.date}
-                </p>
-
-                <span className="rounded-md bg-[#F6F6F4] px-2 py-0.5 text-[11px] font-semibold text-foreground">
-                  {item.interviewType === "PT" ? "PT" : "QA"}
-                </span>
-              </div>
-
-              <p className="mt-1.5 truncate text-[15px] font-semibold text-foreground">
-                {item.company} · {item.role}
-              </p>
-
-              <p className="mt-1 text-[12.5px] text-muted-foreground">
-                {item.stage}
-              </p>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-4">
-              <div className="text-right">
-                <p className="text-[11.5px] font-medium text-muted-foreground">
-                  종합 점수
-                </p>
-
-                <p className="mt-1 text-[22px] font-semibold leading-none text-foreground">
-                  {scoreText(item.totalScore)}
-                  {scoreValue(item.totalScore) !== null && (
-                    <span className="ml-1 text-[13px] font-medium text-muted-foreground">
-                      점
-                    </span>
-                  )}
-                </p>
-              </div>
-
-              <span
-                aria-hidden="true"
-                className="text-[18px] text-muted-foreground"
-              >
-                →
-              </span>
-            </div>
-          </button>
-        ))}
+  return <div className="member-history-list">
+    {items.map((item) => <button key={item.id} type="button" onClick={() => onSelect(item.id)} className="member-history-card">
+      <div className="member-history-details">
+        <div className="member-history-meta">
+          <span>{item.date}</span>
+          <span className={`member-type-badge${item.interviewType === "PT" ? " is-pt" : ""}`}>{item.interviewType === "PT" ? "PT 면접" : "일반면접"}</span>
+        </div>
+        <p className="member-history-company">{item.company} · {item.role}</p>
+        <p className="member-history-stage">{item.stage}</p>
       </div>
-    </section>
-  );
+      <div className="member-history-result">
+        <div className="member-history-score"><p>종합 점수</p><strong>{scoreText(item.totalScore)}</strong>{scoreValue(item.totalScore) !== null && <small>점</small>}</div>
+        <span className="member-history-arrow" aria-hidden="true">→</span>
+      </div>
+    </button>)}
+  </div>;
 }

@@ -54,7 +54,7 @@ export default function useMyPage() {
     ...documentState,
     user: isLoggedIn ? user : null,
     isLoading: isLoggedIn && (isLoading || documentState.isLoading),
-    isError: isError || documentState.isError || !isLoggedIn,
+    isError: isLoggedIn && (isError || documentState.isError),
     changeNickname, removeAccount, isWithdrawing,
   };
 }

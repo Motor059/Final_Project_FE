@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '@/components/common/Header';
-import PageLoading from '@/components/common/PageLoading';
 import ReportContent from '@/components/report/ReportContent';
 import ReportLoading from '@/components/report/ReportLoading';
 import StickySaveBanner from '@/components/report/StickySaveBanner';
@@ -20,9 +19,11 @@ export default function ReportPage() {
   const previewCandidate: unknown = location.state?.guestPreview;
   const preview = sessionId !== undefined && isReportSnapshot(previewCandidate, sessionId)
     ? previewCandidate : undefined;
-  const isFromHistory = location.state?.isFromHistory === true || new URLSearchParams(location.search).has('sessionId');
+  const isFromHistory = location.state?.startAnalysis !== true && (location.state?.isFromHistory === true || new URLSearchParams(location.search).has('sessionId'));
+  const format = location.state?.interviewType === 'PT' ? 'PT' : undefined;
 
-  const { data, isLoading, error, retry } = useReportPolling(sessionId, isFromHistory, preview);
+  const { data, isLoading, error, retry, job } = useReportPolling(sessionId, isFromHistory, preview, format);
+  const isPT = data?.meta.format === 'PT' || job?.format === 'PT' || format === 'PT' || preview?.meta.format === 'PT';
 
   useEffect(() => {
     if (!sessionId) {
@@ -32,11 +33,11 @@ export default function ReportPage() {
     }
   }, [sessionId, navigate, showAlert]);
 
-  if (isLoading) {
-    if (isFromHistory) {
-      return <PageLoading layout="report" title="리포트를 불러오고 있어요" reportForLogin={data || undefined} />;
-    }
-    return <ReportLoading />;
+  if (isLoading || (!preview && job && job.state !== 'COMPLETED')) {
+    return <div className="min-h-screen bg-white">
+      <Header />
+      <ReportLoading isPT={isPT} job={job} onRetry={retry} />
+    </div>;
   }
 
   if (error || !data) {
@@ -58,11 +59,9 @@ export default function ReportPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAF9] pb-[120px] animate-in fade-in duration-500 relative">      
-      <div className="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#F0EFED]">
-        <Header reportForLogin={data || undefined} />
-      </div>
+      <Header reportForLogin={data} />
       
-      <main className="max-w-[780px] mx-auto pt-[100px] px-[20px]">
+      <main className="max-w-[780px] mx-auto pt-[132px] px-[20px]">
         <ReportContent data={data} showGuestNotice={!!preview && isLoggedIn} />
 
         {/* 하단 액션 버튼 */}

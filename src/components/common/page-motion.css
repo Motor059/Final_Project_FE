@@ -1,0 +1,19 @@
+@keyframes devoirPageEnter {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes devoirPageTitle {
+  from { opacity: 0; transform: translateY(.35em); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+html [data-page-motion="pending"] { opacity: 0; }
+/* Explicit product motion: these finite entrances remain enabled in every system motion setting. */
+html [data-page-motion="visible"] {
+  opacity: 1;
+  animation: devoirPageEnter .7s cubic-bezier(.2,.7,.2,1) var(--page-enter-delay, 0ms) backwards !important;
+}
+html [data-page-motion="visible"][data-page-motion-kind="title"] {
+  animation-name: devoirPageTitle !important;
+  animation-duration: .9s !important;
+}
+html [data-page-motion="pending"]:focus-within { opacity: 1; }

@@ -1,5 +1,6 @@
 import Header from "@/components/common/Header";
 import PageLoading from "@/components/common/PageLoading";
+import MemberPageHero from "@/components/common/MemberPageHero";
 import HistoryList, {
   type InterviewHistoryItem,
 } from "@/components/history/HistoryList";
@@ -29,7 +30,7 @@ export default function History() {
   const historyItems: InterviewHistoryItem[] =
     history?.sessions.map((session) => ({
       id: session.sessionId,
-      interviewType: session.interviewType,
+      interviewType: session.format ?? session.interviewType ?? "QA",
       date: formatDate(session.createdAt),
       company: session.companyName ?? companyTypeLabel(session.companyType),
       role: session.jobRole ?? "직무 미지정",
@@ -46,89 +47,40 @@ export default function History() {
   const handleSelectHistory = (id: number) => {
     const selectedItem = historyItems.find((item) => item.id === id);
 
-    if (selectedItem?.interviewType === "PT") {
-      window.alert("PT 면접 결과 조회 기능은 아직 준비 중입니다.");
-      return;
-    }
-
     navigate(reportPath(id), {
-      state: { sessionId: id, isFromHistory: true },
+      state: { sessionId: id, isFromHistory: true, interviewType: selectedItem?.interviewType },
     });
   };
 
-  if (isLoading) {
-    return <PageLoading layout="history" title="지난 면접 기록을 불러오고 있어요" />;
-  }
-
-  if (isError) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="mx-auto w-full max-w-[780px] px-6 pb-14 pt-[124px] md:px-10 md:pb-16 md:pt-[132px]">
-          <p className="text-[14px] text-muted-foreground">
-            면접 기록을 불러오지 못했습니다.
-          </p>
-        </main>
-      </div>
-    );
-  }
+  if (isLoading) return <PageLoading layout="history" title="지난 면접 기록을 불러오고 있어요" />;
+  if (isError) return <div className="member-page">
+    <Header hideBackButton />
+    <MemberPageHero eyebrow="히스토리" title="지난 면접을 다시 살펴봐요" />
+    <main className="member-page-container member-page-body"><p role="alert" className="member-notice">면접 기록을 불러오지 못했습니다.</p></main>
+  </div>;
 
   const totalSessions = history?.totalCount ?? 0;
   const weekSessions = history?.weekCount ?? 0;
 
-  return (
-    <div className="min-h-screen bg-background pt-[68px]">
-      <Header />
-
-      <main className="mx-auto w-full max-w-[780px] px-6 py-14 md:px-10 md:py-16">
-        <header>
-          <p className="text-[13px] font-medium text-muted-foreground">
-            히스토리
-          </p>
-
-          <h1 className="mt-2 text-[34px] font-semibold leading-[1.1] tracking-[-0.025em] text-foreground md:text-[38px]">
-            지금까지 {totalSessions}번 연습했어요.
-          </h1>
-
-          <p className="mt-2 text-[15px] leading-6 text-muted-foreground">
-            점수보다 꾸준함이 면접을 바꿉니다. 지난 면접을 눌러 다시
-            복습해보세요.
-          </p>
-        </header>
-
-        <div className="mt-9">
-          <HistorySummary
-            totalSessions={totalSessions}
-            weekSessions={weekSessions}
-          />
-        </div>
-
-        <div className="mt-10 space-y-10">
-          <section>
-            <h2 className="mb-4 text-[18px] font-semibold">
-              QA 면접 기록
-            </h2>
-
-            <HistoryList
-              items={qaHistoryItems}
-              onSelect={handleSelectHistory}
-              emptyMessage="아직 저장된 QA 면접 기록이 없어요."
-            />
+  return <div className="member-page">
+    <Header hideBackButton />
+    <MemberPageHero eyebrow="히스토리" title={<>지금까지 {totalSessions}번 연습했어요.</>}
+      description="점수보다 꾸준함이 면접을 바꿔요. 지난 면접을 눌러 다시 복습해 보세요." />
+    <main className="member-page-container member-page-body">
+      <HistorySummary totalSessions={totalSessions} weekSessions={weekSessions} />
+      <section aria-labelledby="history-records-title">
+        <h2 id="history-records-title" className="member-section-title">지난 면접</h2>
+        <div className="member-history-groups">
+          <section aria-labelledby="history-qa-title">
+            <h3 id="history-qa-title" className="member-subsection-title">일반면접 기록</h3>
+            <HistoryList items={qaHistoryItems} onSelect={handleSelectHistory} emptyMessage="아직 저장된 일반면접 기록이 없어요." />
           </section>
-
-          <section>
-            <h2 className="mb-4 text-[18px] font-semibold">
-              PT 면접 기록
-            </h2>
-
-            <HistoryList
-              items={ptHistoryItems}
-              onSelect={handleSelectHistory}
-              emptyMessage="아직 저장된 PT 면접 기록이 없어요."
-            />
+          <section aria-labelledby="history-pt-title">
+            <h3 id="history-pt-title" className="member-subsection-title">PT 면접 기록</h3>
+            <HistoryList items={ptHistoryItems} onSelect={handleSelectHistory} emptyMessage="아직 저장된 PT 면접 기록이 없어요." />
           </section>
         </div>
-      </main>
-    </div>
-  );
+      </section>
+    </main>
+  </div>;
 }

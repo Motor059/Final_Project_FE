@@ -1,4 +1,5 @@
 interface SelectionCardProps {
+  reference?: boolean;
   title: string;
   description?: string;
   detail?: string;
@@ -8,6 +9,7 @@ interface SelectionCardProps {
 }
 
 export default function SelectionCard({
+  reference = false,
   title,
   description,
   detail,
@@ -15,6 +17,7 @@ export default function SelectionCard({
   onClick,
   disabled = false,
 }: SelectionCardProps) {
+  if (reference) return <button type="button" onClick={onClick} disabled={disabled} aria-pressed={selected} className={`opt-card${selected ? " on" : ""}`}><div className="t">{title}</div>{description && <div className="d">{description}</div>}{detail && <div className="d2">{detail}</div>}</button>;
   return (
     <button
       type="button"

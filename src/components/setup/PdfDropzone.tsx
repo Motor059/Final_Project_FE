@@ -6,11 +6,13 @@ import {
 } from "react";
 
 interface PdfDropzoneProps {
+  compact?: boolean;
   file: File | null;
   onChange: (file: File | null) => void;
 }
 
 export default function PdfDropzone({
+  compact = false,
   file,
   onChange,
 }: PdfDropzoneProps) {
@@ -64,6 +66,11 @@ export default function PdfDropzone({
     onChange(null);
   };
 
+  if (compact) return <div>
+    {file ? <div className="docrow"><span className="fi">PDF</span><span className="pt-file-name"><span className="t">{file.name}</span><span className="d">{(file.size / 1024 / 1024).toFixed(1)} MB</span></span><button type="button" className="txtbtn" onClick={handleRemove}>삭제</button></div> : <div role="button" tabIndex={0} className={`docup${isDragging ? " drag" : ""}`} onClick={() => inputRef.current?.click()} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); inputRef.current?.click(); } }} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}><span aria-hidden="true">＋</span><span>새 지원 서류 올리기 <em>PDF</em></span></div>}
+    <input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={handleFileChange} className="hidden" />
+    {error && <p className="hint pt-danger" role="alert">{error}</p>}
+  </div>;
   return (
     <div>
       {file ? (

@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
+import { Navigate } from "react-router-dom";
 import Header from "@/components/common/Header";
+import MemberPageHero from "@/components/common/MemberPageHero";
 import LoadingState from "@/components/common/LoadingState";
 import PageLoading from "@/components/common/PageLoading";
 import AccountSection from "@/components/mypage/AccountSection";
@@ -141,15 +143,18 @@ export default function MyPage() {
 
   const avatarText = user?.nickname ? user.nickname.charAt(0) : "유";
 
+  if (!isLoggedIn) return <Navigate to="/" replace />;
+
   if (isLoading) {
     return <PageLoading layout="profile" title="내 정보와 서류를 불러오고 있어요" />;
   }
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-background pt-[68px]">
-        <Header />
-        <main className="mx-auto w-full max-w-[760px] px-6 py-14 md:px-8">
+      <div className="member-page">
+        <Header hideBackButton />
+        <MemberPageHero eyebrow="마이페이지" title="내 정보와 지원 서류" />
+        <main className="member-page-container member-page-body">
           <p className="text-[14px] text-muted-foreground">
             마이페이지 정보를 불러오지 못했습니다.
           </p>
@@ -160,8 +165,8 @@ export default function MyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-[68px]">
-      <Header />
+    <div className="member-page">
+      <Header hideBackButton />
 
       {isWithdrawing && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
@@ -171,26 +176,22 @@ export default function MyPage() {
         </div>
       )}
 
-      <main inert={isWithdrawing} aria-busy={isWithdrawing} className="mx-auto w-full max-w-[760px] px-5 py-10 md:px-8 md:py-16">
-        
-        <div className="mb-12">
-          <h1 className="text-[32px] font-bold tracking-[-0.03em] text-foreground md:text-[36px]">
-            내 정보와 활동
-          </h1>
-        </div>
+      <div inert={isWithdrawing} aria-busy={isWithdrawing}>
+      <MemberPageHero eyebrow="마이페이지" title="내 정보와 지원 서류" />
+      <main className="member-page-container member-page-body">
 
-        <section className="mb-14">
-          <h2 className="mb-3 text-[14px] font-bold text-muted-foreground">
+        <section className="member-profile-section">
+          <h2 className="member-section-eyebrow">
             프로필
           </h2>
           {isEditingNickname ? (
-            <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-              <div className="flex flex-1 items-center gap-4 sm:gap-5">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-black text-[20px] font-bold text-white sm:h-16 sm:w-16 sm:text-[22px]">
+            <div className="member-profile-card">
+              <div className="member-profile-person">
+                <div className="member-profile-avatar">
                   {avatarText}
                 </div>
-                <div className="flex-1">
-                  <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                <div className="min-w-0 flex-1">
+                  <p className="member-field-caption">
                     닉네임
                   </p>
                   <input
@@ -201,44 +202,44 @@ export default function MyPage() {
                       if (e.key === 'Escape') handleEditNicknameCancel();
                     }}
                     placeholder="새 닉네임 입력"
-                    className="mt-1.5 w-full max-w-[220px] rounded-lg border border-foreground/30 bg-background px-3 py-1.5 text-[15px] font-bold text-foreground outline-none focus-visible:border-foreground focus-visible:ring-1 focus-visible:ring-foreground"
+                    aria-label="새 닉네임" className="member-nickname-input"
                     autoFocus
                   />
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="member-profile-actions">
                 <button
                   onClick={handleEditNicknameCancel}
-                  className="rounded-lg border border-border bg-background px-4 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted sm:text-[14px]"
+                  className="member-button"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleEditNicknameSave}
-                  className="rounded-lg bg-black px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-zinc-800 sm:text-[14px]"
+                  className="member-button member-button--primary"
                 >
                   저장
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-              <div className="flex items-center gap-4 sm:gap-5">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-black text-[20px] font-bold text-white sm:h-16 sm:w-16 sm:text-[22px]">
+            <div className="member-profile-card">
+              <div className="member-profile-person">
+                <div className="member-profile-avatar">
                   {avatarText}
                 </div>
                 <div>
-                  <p className="text-[13px] font-medium text-muted-foreground sm:text-[14px]">
+                  <p className="member-field-caption">
                     닉네임
                   </p>
-                  <p className="mt-0.5 text-[18px] font-bold text-foreground sm:text-[20px]">
+                  <p className="member-profile-name">
                     {user?.nickname || "카카오사용자"}님
                   </p>
                 </div>
               </div>
               <button
                 onClick={handleEditNicknameStart}
-                className="rounded-lg border border-border bg-background px-4 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted sm:px-5 sm:text-[14px]"
+                className="member-button"
               >
                 닉네임 변경
               </button>
@@ -260,10 +261,10 @@ export default function MyPage() {
         <div className="my-12 h-px bg-border" />
 
         <section className="mb-12" aria-labelledby="interview-settings-title">
-          <h2 id="interview-settings-title" className="mb-3 text-[14px] font-bold text-muted-foreground">
+          <h2 id="interview-settings-title" className="member-section-eyebrow">
             면접 설정
           </h2>
-          <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-5 sm:p-6">
+          <div className="member-setting-card">
             <div>
               <p id="question-audio-title" className="text-[15px] font-semibold text-foreground">
                 질문 음성 듣기
@@ -308,6 +309,7 @@ export default function MyPage() {
           className="hidden"
         />
       </main>
+      </div>
     </div>
   );
 }

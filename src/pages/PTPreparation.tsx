@@ -1,223 +1,97 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/common/Header";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useBlocker, useLocation, useNavigate } from "react-router-dom";
+import PageLoading from "@/components/common/PageLoading";
+import PTExitDialog from "@/components/presentation/PTExitDialog";
+import PTSessionUnavailable from "@/components/presentation/PTSessionUnavailable";
+import usePTPage from "@/hooks/usePTPage";
+import { ptTrackLabels } from "@/lib/ptSession";
+import { Check, LockKeyhole, Timer } from "lucide-react";
+import usePTMemo from "@/hooks/usePTMemo";
+import { PTProgressHeader, PTTaskContent, PTTrackGuide } from "@/components/presentation/PTWorkspace";
+import { ptTrackDescriptions } from "@/lib/ptTaskView";
+import PTStartDialog from "@/components/presentation/PTStartDialog";
+import { setPTTextMode } from "@/lib/ptPresentation";
+import type { PTTrack } from "@/types/pt";
 
 export default function PTPreparation() {
-    const location = useLocation();
-    const navigate = useNavigate();
-    const storedSessionId = sessionStorage.getItem("ptPreparationSessionId");
+  const navigate = useNavigate();
+  const flow = usePTPage("PREPARATION");
+  const { session, sessionId, isLoading, error, retry, busy, actionError, failedAction,
+    selectTrack, startPresentation, retryAction, active, isExpired, remainingSeconds, exitOpen } = flow;
+  const [confirmingStart, setConfirmingStart] = useState(false);
+  const memoRef = useRef<HTMLTextAreaElement>(null);
+  const [mobileTab, setMobileTab] = useState("task");
+  const { memo, stored, changeMemo } = usePTMemo(sessionId ?? null);
+  const autoDefaultTrackAttempt = useRef<string | null>(null);
+  const autoStartAttempt = useRef<string | null>(null);
+  const preparing = session?.phase === "PREPARING" && session.status === "IN_PROGRESS";
 
-    const rawSessionId =
-        location.state?.sessionId ?? storedSessionId;
-
-    const parsedSessionId = Number(rawSessionId);
-
-    const sessionId =
-        rawSessionId != null &&
-            Number.isSafeInteger(parsedSessionId) &&
-            parsedSessionId > 0
-            ? parsedSessionId
-            : undefined;
-    const [note, setNote] = useState(() => {
-        if (sessionId === undefined) {
-            return "";
-        }
-
-        return sessionStorage.getItem(`ptPreparationNote:${sessionId}`) ?? "";
-    });
-    const blocker = useBlocker(
-        ({ currentLocation, nextLocation }) =>
-            sessionId !== undefined &&
-            currentLocation.pathname !== nextLocation.pathname &&
-            !(import.meta.env.DEV && nextLocation.pathname === "/pt/presentation")
-    );
-    useEffect(() => {
-        if (blocker.state !== "blocked") {
-            return;
-        }
-
-        const shouldLeave = window.confirm(
-            "PT 준비 화면에서 나가시겠어요? 작성한 메모는 이 브라우저에 임시 저장됩니다."
-        );
-
-        if (shouldLeave) {
-            blocker.proceed();
-        } else {
-            blocker.reset();
-        }
-    }, [blocker]);
-    useEffect(() => {
-        if (sessionId === undefined) {
-            return;
-        }
-
-        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            event.preventDefault();
-            event.returnValue = "";
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-
-        return () => {
-            window.removeEventListener("beforeunload", handleBeforeUnload);
-        };
-    }, [sessionId]);
-    useEffect(() => {
-        if (sessionId === undefined) {
-            return;
-        }
-
-        try {
-            sessionStorage.setItem(
-                `ptPreparationNote:${sessionId}`,
-                note
-            );
-        } catch (error) {
-            console.warn("PT 메모 임시 저장 실패:", error);
-        }
-    }, [sessionId, note]);
-    if (sessionId === undefined) {
-        return (
-            <>
-                <Header />
-
-                <main className="flex min-h-screen items-center justify-center bg-background px-5 pt-[68px]">
-                    <div className="w-full max-w-[420px] text-center">
-                        <h1 className="mb-3 text-[24px] font-semibold">
-                            세션 정보를 찾을 수 없습니다
-                        </h1>
-
-                        <p className="mb-8 text-[14px] text-muted-foreground">
-                            면접 설정 화면으로 돌아가 다시 시작해 주세요.
-                        </p>
-
-                        <Button
-                            type="button"
-                            onClick={() => navigate("/setup", { replace: true })}
-                            className="h-12 w-full rounded-xl"
-                        >
-                            면접 설정으로 돌아가기
-                        </Button>
-                        {import.meta.env.DEV && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => navigate("/pt/presentation")}
-                                className="mt-3 h-12 w-full rounded-xl"
-                            >
-                                PT 발표 화면 미리보기
-                            </Button>
-                        )}
-                    </div>
-                </main>
-            </>
-        );
+  useEffect(() => {
+    if (!session || !preparing || remainingSeconds !== 0 ||
+      busy || error || actionError || isExpired || exitOpen || confirmingStart) return;
+    const attemptKey = `${session.sessionId}:${session.preparationDeadline}`;
+    if (!session.track) {
+      if (autoDefaultTrackAttempt.current === attemptKey) return;
+      autoDefaultTrackAttempt.current = attemptKey;
+      void selectTrack("SECURITY");
+      return;
     }
-    return (
-        <>
-            <Header />
+    if (autoStartAttempt.current === attemptKey) return;
+    autoStartAttempt.current = attemptKey;
+    void startPresentation();
+  }, [session, preparing, remainingSeconds, busy, error, actionError, isExpired, exitOpen, confirmingStart, selectTrack, startPresentation]);
 
-            <main className="min-h-screen bg-background pt-[68px]">
-                <div className="mx-auto w-full max-w-[960px] px-5 pb-20 pt-12 sm:px-10">
-                    <header className="mb-10">
-                        <p className="mb-3 text-[13px] font-medium text-muted-foreground">
-                            PT 면접 · 발표 준비
-                        </p>
+  if (isLoading) return <PageLoading layout="setup" title="PT 과제와 남은 준비 시간을 확인하고 있어요" />;
 
-                        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                                <h1 className="text-[32px] font-semibold tracking-tight text-foreground">
-                                    발표를 준비해 주세요
-                                </h1>
+  if (!session || isExpired) {
+    return <PTSessionUnavailable expired={isExpired} error={error} onRetry={sessionId ? () => { void retry(); } : undefined} />;
+  }
 
-                                <p className="mt-3 text-[14px] text-muted-foreground">
-                                    주제를 확인하고 발표 내용을 정리해 보세요.
-                                </p>
-                            </div>
-
-                            <div className="w-fit min-w-[150px] rounded-2xl bg-[#F6F6F4] px-6 py-4 sm:text-right">
-                                <p className="mb-2 text-[12px] font-medium text-muted-foreground">
-                                    남은 준비 시간
-                                </p>
-
-                                <p className="text-[32px] font-semibold tabular-nums tracking-tight">
-                                    --:--
-                                </p>
-                            </div>
-                        </div>
-                    </header>
-
-                    <section className="mb-8 rounded-[24px] bg-[#F6F6F4] p-6 sm:p-8">
-                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                            <h2 className="text-[15px] font-semibold">
-                                발표 주제
-                            </h2>
-
-                            <span className="rounded-full bg-white px-3 py-1 text-[12px] font-medium text-muted-foreground">
-                                PT 면접
-                            </span>
-                        </div>
-
-                        <p className="text-[18px] font-medium leading-relaxed">
-                            세션 {sessionId}의 발표 주제를 불러올 예정입니다.
-                        </p>
-
-                        <div className="mt-6 border-t border-[#E7E5E1] pt-5">
-                            <p className="text-[13px] text-muted-foreground">
-                                실전처럼 자료 없이 해보세요.
-                            </p>
-                        </div>
-                    </section>
-
-                    <section className="mb-8">
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                            <h2 className="text-[14px] font-semibold">
-                                발표 메모
-                            </h2>
-
-                            <span className="text-[12px] text-muted-foreground">
-                                이 브라우저에 임시 저장됨
-                            </span>
-                        </div>
-
-                        <Textarea
-                            value={note}
-                            onChange={(event) => setNote(event.target.value)}
-                            placeholder="발표에 사용할 핵심 내용을 자유롭게 정리해 보세요."
-                            rows={10}
-                            className="resize-y"
-                        />
-                    </section>
-
-                    <Button
-                        type="button"
-                        disabled
-                        className="h-12 w-full rounded-xl text-[15px] font-semibold"
-                    >
-                        발표 시작
-                    </Button>
-
-                    <p className="mt-3 text-center text-[12px] text-muted-foreground">
-                        서버 연결이 완료되면 발표를 시작할 수 있습니다.
-                    </p>
-                    {import.meta.env.DEV && (
-                        <div className="mt-5 text-center">
-                            <Button
-                                type="button"
-                                variant="link"
-                                onClick={() => navigate("/pt/presentation", {
-                                    state: { presentationNote: note },
-                                })}
-                                className="text-[12px] text-muted-foreground"
-                            >
-                                PT 발표 화면 미리보기
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            </main>
-        </>
-    );
+  const content = session.task.content;
+  const memoLocked = !preparing || remainingSeconds === 0 || busy === "START" || exitOpen;
+  const addTemplate = () => {
+    const template = ["1. 선택 분야와 결론", "", "2. 핵심 문제와 선택 근거", "", "3. 개선 방안과 대안 비교", "", "4. 실행 계획과 위험 대응", "", "5. 기대 효과와 검증 방법", ""].join("\n");
+    changeMemo(`${memo.trimEnd()}${memo.trimEnd() ? "\n\n" : ""}${template}`.slice(0, 30000));
+    memoRef.current?.focus();
+  };
+  const beginPresentation = async (mode: "AUDIO" | "TEXT") => {
+    if (mode === "TEXT") setPTTextMode(session.sessionId);
+    if (await startPresentation()) setConfirmingStart(false);
+  };
+  return <>
+    <Header hideBackButton focusLabel={active ? "PT 면접 진행 중" : undefined} onExit={flow.requestExit} exitDisabled={flow.cancelBlocked} />
+    <main className="pt-ref pt-ref-page pt-view">
+      <PTProgressHeader company={session.task.companyName} step={0} remaining={remainingSeconds} tabs={<div className="seg pt-tabs" role="tablist" aria-label="준비 화면 전환">
+        {[{ value: "task", label: "과제" }, { value: "side", label: "분야·메모" }].map(({ value, label }) => <button type="button" role="tab" key={value} className={mobileTab === value ? "on" : ""} aria-selected={mobileTab === value} aria-controls={`pt-preparation-${value}`} onClick={() => setMobileTab(value)}>{label}</button>)}
+      </div>} />
+      <div className="wrap">
+        {(error || actionError) && <div role="alert" className="pt-err pt-page-error"><span>{actionError || error}<br /><button type="button" className="btn ghost sm" disabled={!!busy} onClick={() => { if (failedAction?.type === "CANCEL") void flow.confirmExit(); else void (failedAction ? retryAction() : retry()); }}>다시 시도</button></span></div>}
+        {remainingSeconds === 0 && <div className="pt-ended" role="status"><Timer size={22} aria-hidden="true" /><span>준비 시간이 끝났어요. 발표를 시작해주세요.<small>시간은 더 늘어나지 않고, 메모도 더 고칠 수 없어요.</small></span></div>}
+        <div className="pt-work" data-tab={mobileTab}>
+          <div id="pt-preparation-task" className="pt-task-slot"><PTTaskContent content={content} track={session.track} /></div>
+          <div id="pt-preparation-side" className="pt-side">
+            <section className="pt-card pt-field" aria-labelledby="pt-track-title">
+              <div className="pt-card-h"><h2 id="pt-track-title"><span className="req">필수</span>발표 분야 선택</h2><span className="hint">한 분야만 · 발표 시작 시 확정</span></div>
+              <div className="pt-fields" role="radiogroup" aria-labelledby="pt-track-title" aria-busy={busy === "TRACK"}>{(Object.keys(ptTrackLabels) as PTTrack[]).map((track) => <button type="button" key={track} role="radio" aria-checked={session.track === track} className={`pt-fcard${session.track === track ? " on" : ""}`} disabled={!preparing || !!busy || exitOpen || confirmingStart} onClick={() => { void selectTrack(track); }}><span className="t">{ptTrackLabels[track]}<Check className="ck" size={14} aria-hidden="true" /></span><span className="d">{ptTrackDescriptions[track]}</span></button>)}</div>
+              {session.track && <PTTrackGuide key={session.track} content={content} track={session.track} />}
+            </section>
+            <section className="pt-card pt-memo" aria-labelledby="pt-memo-title">
+              <div className="pt-card-h"><h2 id="pt-memo-title">개인 메모</h2><button type="button" className="pt-tpl" disabled={memoLocked} onClick={addTemplate}>메모 틀 넣기</button></div>
+              <textarea ref={memoRef} className="inp" aria-labelledby="pt-memo-title" value={memo} maxLength={30000} readOnly={memoLocked} onChange={(event) => changeMemo(event.target.value)} placeholder="자유롭게 정리하세요. 필요하면 메모 틀을 넣어 쓸 수 있어요." />
+              <div className="pt-memo-foot"><span className="lock"><LockKeyhole size={14} aria-hidden="true" />개인 메모는 평가에 사용되지 않아요.</span><span>{!stored ? "화면 내 임시 보관" : memoLocked ? "읽기 전용" : "이 탭에만 임시 보관"} · {memo.length.toLocaleString()}자</span></div>
+            </section>
+          </div>
+        </div>
+      </div>
+      <footer className="pt-foot"><div className="wrap pt-foot-in">
+        {active && <button type="button" className="pt-exit" disabled={!!busy} onClick={flow.requestExit}>나가기</button>}
+        <div className="pt-foot-r"><span className="pt-foot-msg" aria-live="polite">{busy === "TRACK" ? "발표 분야를 저장하고 있어요" : !session.track ? "발표 분야를 선택하면 시작할 수 있어요" : remainingSeconds === 0 ? "준비 시간이 끝났어요. 발표를 시작해주세요." : "준비를 일찍 마쳤다면 바로 발표할 수 있어요"}</span>
+          {preparing ? <button type="button" className="btn ink" disabled={!session.track || !!busy || exitOpen} onClick={() => setConfirmingStart(true)}>{busy === "START" ? "발표 시작 중…" : "발표 시작"}</button> : <button type="button" className="btn ghost" onClick={() => navigate("/setup")}>면접 설정으로 이동</button>}
+        </div>
+      </div></footer>
+    </main>
+    <PTStartDialog open={confirmingStart && preparing && !exitOpen} trackLabel={session.track ? ptTrackLabels[session.track] : ""} busy={busy === "START"} error={failedAction?.type === "START" ? actionError : null} onClose={() => setConfirmingStart(false)} onStart={(mode) => { void beginPresentation(mode); }} />
+    <PTExitDialog open={exitOpen} busy={!!busy} error={failedAction?.type === "CANCEL" ? actionError : null} onContinue={flow.closeExit} onCancel={() => { void flow.confirmExit(); }} />
+  </>;
 }

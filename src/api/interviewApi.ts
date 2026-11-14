@@ -1,7 +1,7 @@
 import { api } from '@/api/axios';
 import type {
   ApiResponse, SessionData, CurrentQuestionData, AnswerSubmitData,
-  SkipTopicData, StartInterviewData, AnalyzeSessionData, TextAnswerRequest,
+  SkipTopicData, StartInterviewData, TextAnswerRequest,
 } from './api';
 
 function audioFileName(questionId: number, mimeType: string) {
@@ -87,9 +87,5 @@ export const interviewApi = {
     return response.data.data;
   },
 
-  // 채점 요청 API
-  analyzeSession: async (sessionId: number): Promise<AnalyzeSessionData> => {
-    const response = await api.post<ApiResponse<AnalyzeSessionData>>(`/api/v1/sessions/${sessionId}/analyze`);
-    return response.data.data;
-  },
+
 };

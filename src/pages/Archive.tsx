@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Plus, X } from "lucide-react";
 import Header from "@/components/common/Header";
 import ArchiveCard from "@/components/archive/ArchiveCard";
@@ -14,13 +14,13 @@ import { useAlertStore } from "@/store/useAlertStore";
 import type { ArchiveFilters, ArchiveRecord } from "@/types/archive";
 import "@/components/archive/archive.css";
 
-export default function Archive({ preview = false }: { preview?: boolean }) {
+export default function Archive() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const showAlert = useAlertStore((state) => state.showAlert);
-  if (!preview && !isLoggedIn) {
-    return <><Header /><main className="archive-page"><section className="hero"><div className="hero-bg"><div className="hero-glow" /></div><div className="wrap narrow archive-login"><h1>실제 면접에서 받은 질문</h1><p>로그인하면 다른 지원자들이 실제 면접에서 받은 질문을 볼 수 있어요. 내가 받은 질문도 공유할 수 있어요.</p><button type="button" className="btn ink" onClick={() => { try { startKakaoLogin(); } catch { showAlert("로그인을 준비하지 못했습니다. 다시 시도해 주세요."); } }}>카카오로 로그인하기</button>{import.meta.env.DEV && <Link className="dv-link" to="/archive/preview">기출 질문 화면 미리보기</Link>}</div></section></main></>;
+  if (!isLoggedIn) {
+    return <><Header /><main className="archive-page"><section className="hero"><div className="hero-bg"><div className="hero-glow" /></div><div className="wrap narrow archive-login"><h1>실제 면접에서 받은 질문</h1><p>로그인하면 다른 지원자들이 실제 면접에서 받은 질문을 볼 수 있어요. 내가 받은 질문도 공유할 수 있어요.</p><button type="button" className="btn ink" onClick={() => { try { startKakaoLogin(); } catch { showAlert("로그인을 준비하지 못했습니다. 다시 시도해 주세요."); } }}>카카오로 로그인하기</button></div></section></main></>;
   }
-  return <><Header /><ArchiveWorkspace key={preview ? "preview" : "member"} /></>;
+  return <><Header /><ArchiveWorkspace /></>;
 }
 
 function ArchiveWorkspace() {
@@ -72,8 +72,6 @@ function ArchiveWorkspace() {
 
   return (
     <main className="archive-page">
-      <div className="wrap"><div className="archive-preview-notice"><strong>화면 미리보기</strong><span>질문과 회사 정보는 시안의 예시예요. 등록·하트·신고·삭제는 미리보기에서만 반영돼요. 마이페이지와 상태를 공유하고 새로고침하면 초기화돼요.</span></div></div>
-      <div className="wrap narrow archive-preview-navigation"><Link to="/mypage/preview">내가 등록한 질문 미리보기 →</Link></div>
       {focusRecordId && !focusRecord && <p className="wrap narrow archive-record-missing" role="status">선택한 면접 기록을 찾지 못했어요. 아래 목록에서 다시 선택해 주세요.</p>}
       {formView ? <ArchiveForm companies={model.companies} records={model.records} remaining={model.remainingQuestions} onBack={goList} onSubmit={(submission) => {
         if (!model.addRecord(submission)) return false;
@@ -104,7 +102,7 @@ function ArchiveWorkspace() {
       )}
       <Dialog open={dialog !== null} onOpenChange={(open) => { if (!open) setDialog(null); }}><DialogContent className="archive-dialog rounded-[28px] p-0 sm:max-w-[400px]" showCloseButton={false}><div className="archive-page archive-modal"><div className="sheet">
         <DialogTitle>{dialog?.kind === "delete" ? "이 면접 기록을 삭제할까요?" : "이 면접 기록을 신고할까요?"}</DialogTitle>
-        <DialogDescription>{dialog?.kind === "delete" ? `같이 등록한 질문 ${dialog.record.questions.length}개가 모두 미리보기에서 사라지고 되돌릴 수 없어요.` : "사유를 골라 주세요. 같은 기록은 한 번만 신고할 수 있어요."}</DialogDescription>
+        <DialogDescription>{dialog?.kind === "delete" ? `함께 등록한 질문 ${dialog.record.questions.length}개가 모두 삭제돼요.` : "사유를 골라 주세요. 같은 기록은 한 번만 신고할 수 있어요."}</DialogDescription>
         {dialog?.kind === "report" && <><div className="quote"><b>{companiesById.get(dialog.record.companyId)?.display}</b> {dialog.record.period.replace("-", ".")}<br />{dialog.record.questions[0]?.text}{dialog.record.questions.length > 1 && ` 외 ${dialog.record.questions.length - 1}개`}</div><div role="radiogroup" aria-label="신고 사유">{archiveReportReasons.map((item) => <label key={item.value} className={`reason ${reason === item.value ? "on" : ""}`}><input className="sr" type="radio" name="archive-report-reason" value={item.value} checked={reason === item.value} onChange={() => setReason(item.value)} /><span className="dot" aria-hidden="true" /><span><span className="t">{item.title}</span><span className="d">{item.description}</span></span></label>)}</div></>}
         <div className="acts"><button type="button" className="btn danger" disabled={dialog?.kind === "report" && !reason} onClick={() => { if (!dialog) return; if (dialog.kind === "delete") model.deleteRecord(dialog.record.id); else if (reason) model.reportRecord(dialog.record.id); setDialog(null); }}>{dialog?.kind === "delete" ? "삭제하기" : "신고하기"}</button><button type="button" className="btn ghost" onClick={() => setDialog(null)}>취소</button></div>
       </div></div></DialogContent></Dialog>

@@ -11,6 +11,7 @@ export type SessionStatus =
 
 export interface SessionItem {
   sessionId: number;
+  format?: "QA" | "PT";
   interviewType?: "QA" | "PT";
   companyType: CompanyType;
   interviewStage: InterviewStage;

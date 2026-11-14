@@ -82,7 +82,7 @@ export default function ArchiveForm({ companies, records, remaining, onSubmit, o
             <div className="field"><label className="fl" htmlFor="archive-tip">분위기와 팁 메모 <span className="opt">선택</span></label><textarea className="inp" id="archive-tip" rows={3} value={tip} onChange={(event) => setTip(event.target.value)} placeholder="예: 다대다 면접, 꼬리 질문이 3단계까지 이어졌어요." /></div>
           </section>
           <button type="button" className={`confirm ${consent ? "on" : ""}`} aria-pressed={consent} onClick={() => setConsent(!consent)}><span className="box">{consent && <Check size={13} aria-hidden="true" />}</span><span><span className="t">본인이 직접 경험한 질문입니다 <span className="req">필수</span></span><span className="d">다른 사이트나 커뮤니티의 글을 옮겨 등록하면 안 돼요. 확인되면 삭제돼요.</span><span className="w">회사와 비밀유지 약정을 맺은 내용은 올리지 마세요. 그로 인한 책임은 등록한 분에게 있어요.</span></span></button>
-          <p className="hint archive-limit">하루에 질문 20개까지 등록할 수 있어요. 등록한 면접은 기출 질문의 내 면접 카드에서 언제든 삭제할 수 있어요.<br />현재 미리보기에서 추가할 수 있는 질문: {remaining}개</p>
+          <p className="hint archive-limit">하루에 질문 20개까지 등록할 수 있어요. 등록한 면접은 기출 질문의 내 면접 카드에서 언제든 삭제할 수 있어요.<br />추가로 등록할 수 있는 질문: {remaining}개</p>
           {error && <p className="archive-error" role="alert">{error}</p>}
           <div className="submitbar"><button type="submit" className="btn ink" disabled={!ready}>{filled.length > 1 ? `질문 ${filled.length}개 등록하기` : "질문 등록하기"}</button></div>
         </form>

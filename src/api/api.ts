@@ -76,13 +76,15 @@ export interface SkipTopicData {
 // 채점 시작 요청 응답 타입 (POST /api/v1/sessions/{id}/feedback)
 export interface StartScoringData {
   sessionId: number;
-  statusUrl: string;
+  status: 'SCORING';
 }
 
 // 채점 상태 폴링 응답 타입 (GET /api/v1/sessions/{id}/feedback/status)
 export interface PollingStatusData {
   sessionId: number;
   status: 'SCORING' | 'COMPLETED' | 'FAILED';
+  completedCards: number;
+  totalCards: number;
 }
 
 // 면접 시작 응답 데이터 타입 (POST /api/v1/sessions/{id}/start)
@@ -94,10 +96,4 @@ export interface StartInterviewData {
     seq: number;
     content: string;
   };
-}
-
-// 채점 요청 응답 데이터 타입 (POST /api/v1/sessions/{id}/analyze)
-export interface AnalyzeSessionData {
-  sessionId: number;
-  status: string;
 }
