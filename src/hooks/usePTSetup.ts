@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { CanceledError, isAxiosError, isCancel } from "axios";
-import { ptApi } from "@/api/ptApi";
+import { getCachedPTOptions, ptApi } from "@/api/ptApi";
 import { getAuthVersion } from "@/lib/authStorage";
 import { ensureInterviewAuthentication } from "@/lib/guestAuth";
 import { getPTCreateRequest, ptErrorMessage, rememberCreatedPTSession, resetPTCreation } from "@/lib/ptSession";
 import type { PTCreateSessionInput, PTOptions } from "@/types/pt";
 
 export default function usePTSetup() {
-  const [options, setOptions] = useState<PTOptions | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [options, setOptions] = useState<PTOptions | null>(getCachedPTOptions);
+  const [isLoading, setIsLoading] = useState(options === null);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -25,8 +25,6 @@ export default function usePTSetup() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setIsLoading(true);
-    setError(null);
     const load = async () => {
       try {
         await ensureInterviewAuthentication();
@@ -79,5 +77,9 @@ export default function usePTSetup() {
     }
   };
 
-  return { options, isLoading, error, isCreating, createSession, retry: () => setRetryCount((count) => count + 1) };
+  return { options, isLoading, error, isCreating, createSession, retry: () => {
+    setError(null);
+    setIsLoading(options === null);
+    setRetryCount((count) => count + 1);
+  } };
 }

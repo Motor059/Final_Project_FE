@@ -324,7 +324,7 @@ const seed: { companies: ArchiveCompany[]; records: ArchiveRecord[] } = {
       "period": "2026-03",
       "role": "백엔드",
       "tip": "기술 면접 2:1이었어요. 제 프로젝트 README를 미리 읽고 오신 것 같았어요.",
-      "mine": true,
+      "mine": false,
       "reported": false,
       "order": 7,
       "questions": [

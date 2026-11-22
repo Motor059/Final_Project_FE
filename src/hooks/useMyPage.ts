@@ -1,60 +1,58 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { getMyInfo, updateNickname } from "@/api/userApi";
+import { updateNickname } from "@/api/userApi";
 import { getAuthVersion } from "@/lib/authStorage";
 import useDocuments from "@/hooks/useDocuments";
-import type { UserResponse } from "@/types/user";
+
+interface UserQuery { version: number; error: boolean; }
 
 export default function useMyPage() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const cachedUser = useAuthStore((state) => state.user);
+  const fetchUserInfo = useAuthStore((state) => state.fetchUserInfo);
   const updateNicknameInStore = useAuthStore((state) => state.updateNicknameInStore);
   const removeAccount = useAuthStore((state) => state.withdraw);
   const isWithdrawing = useAuthStore((state) => state.isWithdrawing);
   const documentState = useDocuments(isLoggedIn);
-  const [user, setUser] = useState<UserResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(isLoggedIn);
-  const [isError, setIsError] = useState(false);
+  const version = getAuthVersion();
+  const [query, setQuery] = useState<UserQuery>(() => ({ version, error: false }));
+  const current = query.version === version ? query : null;
+  const user = cachedUser;
+  const isError = !!current?.error && !user;
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      setUser(null);
-      setIsError(false);
-      setIsLoading(false);
-      return;
-    }
-    const version = getAuthVersion();
+    if (!isLoggedIn) return;
     let active = true;
-    const fetchUser = async () => {
-      setIsLoading(true);
-      setIsError(false);
+    const load = async () => {
       try {
-        const data = await getMyInfo();
-        if (active && version === getAuthVersion()) setUser(data);
+        await fetchUserInfo({ includeLastSetting: false });
+        if (active && version === getAuthVersion()) setQuery({ version, error: false });
       } catch (error) {
         if (active && version === getAuthVersion()) {
           console.error("마이페이지 사용자 조회 실패:", error);
-          setIsError(true);
+          setQuery({ version, error: true });
         }
-      } finally {
-        if (active && version === getAuthVersion()) setIsLoading(false);
       }
     };
-    void fetchUser();
+    void load();
     return () => { active = false; };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, version, fetchUserInfo]);
 
   const changeNickname = async (nickname: string) => {
-    const version = getAuthVersion();
+    if (!user) return;
     await updateNickname(nickname);
-    if (version !== getAuthVersion() || useAuthStore.getState().isWithdrawing) return;
-    setUser((current) => current ? { ...current, nickname } : current);
+    if (version !== getAuthVersion() || useAuthStore.getState().isWithdrawing || useAuthStore.getState().user?.id !== user.id) return;
+    setQuery({ version, error: false });
     updateNicknameInStore(nickname);
   };
   return {
     ...documentState,
+    documentsError: documentState.isError,
+    documentsLoading: documentState.isLoading,
+    retryDocuments: documentState.retry,
     user: isLoggedIn ? user : null,
-    isLoading: isLoggedIn && (isLoading || documentState.isLoading),
-    isError: isLoggedIn && (isError || documentState.isError),
+    isLoading: isLoggedIn && ((!user && !isError) || documentState.isLoading),
+    isError: isLoggedIn && isError,
     changeNickname, removeAccount, isWithdrawing,
   };
 }

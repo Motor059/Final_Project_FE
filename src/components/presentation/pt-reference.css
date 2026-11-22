@@ -129,6 +129,7 @@
 @keyframes ptref_dvWordIn{from{opacity:0;transform:translateY(6px);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
 .pt-ref .sp{display:inline-block;flex:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:ptref_dvSpin .8s linear infinite}
 .pt-ref .btn[disabled] .sp,.pt-ref .sp.dk{border-color:#E2E0DC;border-top-color:#57534E}
+.pt-ref .btn[disabled] .devoir-loading-spinner{color:#57534E}
 .pt-ref .btn[aria-disabled="true"]{background:var(--soft);color:var(--faint);border-color:transparent}
 .pt-ref .btn[aria-disabled="true"]:hover{transform:none;background:var(--soft)}
 .pt-ref .pt-danger{color:var(--danger)!important}
@@ -417,4 +418,14 @@
 .pt-ref button:disabled{cursor:not-allowed}
 @media(max-width:860px){.pt-ref .pt-work[data-tab="side"]>.pt-task-slot{display:none}.pt-ref .pt-data .r.pt-data-text{grid-template-columns:1fr}}
 @media(max-width:640px){.pt-drawer-host[data-slot="dialog-content"]{top:auto;bottom:0;height:88dvh}.pt-ref .pt-drawer{height:100%}.pt-ref .pt-custom-fields{padding-inline:20px}}
-@media(prefers-reduced-motion:reduce){.pt-ref *,.pt-ref *:before,.pt-ref *:after{animation:none!important;transition:none!important}.pt-ref .pv-h1,.pt-ref .sheet,.pt-ref .pt-drawer{opacity:1;transform:none;filter:none}}
+@media(prefers-reduced-motion:reduce){
+  .pt-ref *,.pt-ref *:before,.pt-ref *:after{animation:none!important;transition:none!important}
+  .pt-ref .pv-h1,.pt-ref .sheet,.pt-ref .pt-drawer{opacity:1;transform:none;filter:none}
+  /* Processing indicators keep a slower motion even when decorative motion is reduced. */
+  .pt-ref .sp{animation:ptref_dvSpin 2.4s linear infinite!important}
+  .pt-ref .devoir-loading-spinner{animation:devoir-loading-turn 2.4s linear infinite!important}
+  .pt-ref .devoir-loading-arc{animation:devoir-loading-sweep 3.2s ease-in-out infinite!important}
+  .pt-ref .devoir-loading-dot{animation:devoir-loading-dot-fade 1.9s ease-in-out infinite!important}
+  .pt-ref .devoir-loading-dot:nth-child(2){animation-delay:.15s!important}
+  .pt-ref .devoir-loading-dot:nth-child(3){animation-delay:.3s!important}
+}

@@ -9,9 +9,17 @@ export function LoadingIndicator({ size = 'md', className = '' }: LoadingIndicat
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"
       className={`devoir-loading-spinner inline-block shrink-0 ${sizeClass} ${className}`}>
       <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" opacity="0.15" />
-      <path d="M12 2.5A9.5 9.5 0 0 1 21.5 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle className="devoir-loading-arc" cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="20 60" />
     </svg>
   );
+}
+
+export function LoadingDots() {
+  return <span className="devoir-loading-dots" aria-hidden="true">
+    <span className="devoir-loading-dot" />
+    <span className="devoir-loading-dot" />
+    <span className="devoir-loading-dot" />
+  </span>;
 }
 
 interface LoadingStateProps {
@@ -28,14 +36,14 @@ export default function LoadingState({ title, description, inline = false, class
       {inline ? (
         <>
           <LoadingIndicator size="sm" />
-          <span className="text-[13px] leading-relaxed">{title}</span>
+          <span className="text-[13px] leading-relaxed">{title}<LoadingDots /></span>
         </>
       ) : (
         <>
           <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F5F4] text-[#78716C]">
             <LoadingIndicator />
           </span>
-          <p className="break-keep text-[17px] font-semibold leading-relaxed tracking-[-0.02em] text-[#44403C]">{title}</p>
+          <p className="break-keep text-[17px] font-semibold leading-relaxed tracking-[-0.02em] text-[#44403C]">{title}<LoadingDots /></p>
           {description && <p className="mt-2 max-w-[320px] break-keep text-[13px] leading-[1.8] text-[#8A847F]">{description}</p>}
         </>
       )}

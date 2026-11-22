@@ -1,10 +1,21 @@
 import { scoreText, scoreValue } from "@/lib/reportDisplay";
+import { LoadingIndicator } from "@/components/common/LoadingState";
+import type { AnalysisState } from "@/store/useReportAnalysisStore";
 
 export interface InterviewHistoryItem {
   id: number; interviewType?: "QA" | "PT"; date: string; company: string;
   role: string; stage: string; totalScore: number | null;
+  resultState: AnalysisState | "INCOMPLETE";
 }
 interface HistoryListProps { items: InterviewHistoryItem[]; onSelect: (id: number) => void; emptyMessage?: string; }
+
+const resultLabels: Record<Exclude<InterviewHistoryItem["resultState"], "COMPLETED">, string> = {
+  CHECKING: "채점 중",
+  SCORING: "채점 중",
+  FAILED: "채점 실패",
+  ERROR: "상태 확인 필요",
+  INCOMPLETE: "면접 미완료",
+};
 
 export default function HistoryList({ items, onSelect, emptyMessage }: HistoryListProps) {
   if (!items.length) return <div className="member-empty-state">
@@ -23,7 +34,11 @@ export default function HistoryList({ items, onSelect, emptyMessage }: HistoryLi
         <p className="member-history-stage">{item.stage}</p>
       </div>
       <div className="member-history-result">
-        <div className="member-history-score"><p>종합 점수</p><strong>{scoreText(item.totalScore)}</strong>{scoreValue(item.totalScore) !== null && <small>점</small>}</div>
+        <div className="member-history-score" role="status" aria-live="polite" aria-atomic="true">
+          <p>종합 점수</p>
+          {item.resultState === "COMPLETED" ? <><strong>{scoreText(item.totalScore)}</strong>{scoreValue(item.totalScore) !== null && <small>점</small>}</>
+            : <span className="member-history-status">{(item.resultState === "CHECKING" || item.resultState === "SCORING") && <LoadingIndicator size="sm" />}{resultLabels[item.resultState]}</span>}
+        </div>
         <span className="member-history-arrow" aria-hidden="true">→</span>
       </div>
     </button>)}

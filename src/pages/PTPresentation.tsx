@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertCircle, Check, LockKeyhole, Type } from "lucide-react";
 import Header from "@/components/common/Header";
 import PageLoading from "@/components/common/PageLoading";
+import { LoadingDots } from "@/components/common/LoadingState";
 import { PTProgressHeader, PTReferenceButtons, PTReferencePanel, type PTReferenceTab } from "@/components/presentation/PTWorkspace";
 import PTQuestionOrb from "@/components/presentation/PTQuestionOrb";
 import PTAudioWaveform from "@/components/presentation/PTAudioWaveform";
@@ -35,6 +36,7 @@ function PresentationScreen({ session, flow }: { session: PTSession; flow: Retur
   const trackLabel = session.track ? ptTrackLabels[session.track] : "";
   const saved = !!session.presentation;
   const displayError = input.localError || error || ((!saved || failedAction?.type === "CANCEL") ? actionError : null);
+  const preparingQuestions = !presenting && active && !displayError;
   const controlsLocked = submitting || !!busy || !!input.pending;
   const graceSeconds = Math.max(0, Math.ceil((Date.parse(session.presentationDeadline ?? "") + 60_000 - flow.serverNow) / 1000));
 
@@ -50,10 +52,10 @@ function PresentationScreen({ session, flow }: { session: PTSession; flow: Retur
       <section className="wrap pt-stage">
         <div className="pt-ctx">{content.title}</div>
         {trackLabel && <span className="pt-fchip"><LockKeyhole size={14} aria-hidden="true" />선택 분야 · {trackLabel}</span>}
-        <div className="pt-orb"><PTQuestionOrb orbOnly text="" state={submitting ? "thinking" : input.mode === "AUDIO" && input.recorder.status === "RECORDING" ? "recording" : "idle"} /></div>
+        <div className="pt-orb"><PTQuestionOrb orbOnly text="" state={submitting || preparingQuestions ? "thinking" : input.mode === "AUDIO" && input.recorder.status === "RECORDING" ? "recording" : "idle"} /></div>
         {submitting ? <div className="pt-saving" role="status">
           <h1 className="cs-title">{remaining === 0 ? "발표 시간이 종료되었습니다." : "발표를 마쳤어요."}</h1>
-          <p className="pv-sub">발표 내용을 저장하고 있어요.</p>
+          <p className="pv-sub">발표 내용을 저장하고 있어요<LoadingDots /></p>
           <ul className="steps">{input.mode === "AUDIO" && <li className="done">녹음 저장</li>}<li className="on"><span className="sp dk" aria-hidden="true" /> {input.mode === "AUDIO" ? "발표 받아쓰기" : "발표 내용 저장"}</li><li>첫 질문 준비</li></ul>
         </div> : presenting ? <>
           <div className={`pt-state${input.recorder.status === "ERROR" ? " muted" : ""}`} role="status">
@@ -70,7 +72,13 @@ function PresentationScreen({ session, flow }: { session: PTSession; flow: Retur
             {input.pending ? <span className="hint">다시 발표하지 않아도 돼요. 같은 내용으로 다시 제출할 수 있어요.</span> : input.mode === "TEXT" && !input.text.trim() ? <span className="hint">내용을 입력하면 제출할 수 있어요</span> : remaining === 0 && <span className="hint">{input.submissionClosed ? "발표 제출 시간이 지났어요. 면접을 취소하고 다시 시작해 주세요." : `발표 시간이 끝났어요. 첫 제출까지 ${graceSeconds}초 남았어요.`}</span>}
             {input.mode === "AUDIO" && <button type="button" className="txtbtn" disabled={controlsLocked || input.submissionClosed || exitOpen} onClick={() => setConfirmingText(true)}>텍스트로 입력하기</button>}
           </div>
-        </> : <div className="pt-saving"><span className="pt-done-mark"><Check size={30} aria-hidden="true" /></span><h1 className="cs-title">{saved ? "발표를 마쳤어요." : ptPhaseLabels[session.phase]}</h1><p className="pv-sub">{session.phase === "CANCELLED" ? "이번 면접은 취소됐어요." : "발표 내용을 바탕으로 질의응답을 준비하고 있어요."}</p><PTReferenceButtons onOpen={setReferenceTab} includeTalk={saved} />{!active && <button type="button" className="btn ghost" onClick={() => navigate("/setup")}>면접 설정으로 이동</button>}</div>}
+        </> : <div className="pt-saving" role={preparingQuestions ? "status" : undefined}>
+          {!preparingQuestions && <span className="pt-done-mark"><Check size={30} aria-hidden="true" /></span>}
+          <h1 className="cs-title">{saved ? "발표를 마쳤어요." : ptPhaseLabels[session.phase]}</h1>
+          <p className="pv-sub">{session.phase === "CANCELLED" ? "이번 면접은 취소됐어요." : "발표 내용을 바탕으로 질의응답을 준비하고 있어요."}{preparingQuestions && <LoadingDots />}</p>
+          <PTReferenceButtons onOpen={setReferenceTab} includeTalk={saved} />
+          {!active && <button type="button" className="btn ghost" onClick={() => navigate("/setup")}>면접 설정으로 이동</button>}
+        </div>}
       </section>
     </main>
     <PTReferencePanel session={session} tab={referenceTab} onChange={setReferenceTab} />

@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { useInterviewStore } from "@/store/useInterviewStore";
@@ -41,8 +41,17 @@ export default function Header({ reportForLogin, hideBackButton: hideBack = fals
   }, [location.pathname]);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const user = useAuthStore((state) => state.user);
+  const fetchUserInfo = useAuthStore((state) => state.fetchUserInfo);
   const showAlert = useAlertStore((state) => state.showAlert);
   const hideBackButton = hideBack || location.pathname === "/" || location.pathname === "/interview";
+  const profileName = user?.nickname?.trim() ?? "";
+  const profileInitial = Array.from(profileName)[0];
+
+  useEffect(() => {
+    if (!isLoggedIn || user) return;
+    // Restore the shared profile on direct visits as well as on the home page.
+    void fetchUserInfo({ includeLastSetting: false }).catch(() => {});
+  }, [isLoggedIn, user, fetchUserInfo]);
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>, path: string) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -74,8 +83,8 @@ export default function Header({ reportForLogin, hideBackButton: hideBack = fals
             <nav className="devoir-header-navigation" aria-label="주 메뉴">
               {navigation.map((item) => <Link key={item.path} to={item.path} className={`devoir-header-link ${isCurrent(item.path) ? "is-current" : ""}`} aria-current={isCurrent(item.path) ? "page" : undefined} onClick={(event) => handleNavigation(event, item.path)}>{item.label}</Link>)}
             </nav>
-            <Link to="/mypage" className="devoir-header-profile" aria-label="마이페이지" title={user?.nickname ? `${user.nickname}님 마이페이지` : "마이페이지"} aria-current={location.pathname.startsWith("/mypage") ? "page" : undefined} onClick={(event) => handleNavigation(event, "/mypage")}>
-              {user?.nickname?.charAt(0) || "유"}
+            <Link to="/mypage" className="devoir-header-profile" aria-label="마이페이지" title={profileName ? `${profileName}님 마이페이지` : "마이페이지"} aria-current={location.pathname.startsWith("/mypage") ? "page" : undefined} onClick={(event) => handleNavigation(event, "/mypage")}>
+              {profileInitial || <UserRound size={18} aria-hidden="true" />}
             </Link>
           </div>
         ) : <Button type="button" className="rounded-md text-[14px] font-semibold" onClick={handleLogin}>로그인</Button>}

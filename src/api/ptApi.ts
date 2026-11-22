@@ -1,7 +1,12 @@
 import { api } from "@/api/axios";
 import type { ApiResponse } from "@/api/api";
 import type { PTAnswerResult, PTAudioAnswerRequest, PTAudioPresentationRequest, PTCreateSessionRequest, PTOptions, PTProgress, PTQuestionProgress, PTSession, PTTextAnswerRequest, PTTextPresentationRequest, PTTrack } from "@/types/pt";
+import { createSessionSnapshot } from '@/lib/sessionSnapshot';
+import { getAuthVersion } from '@/lib/authStorage';
 import { ptAudioFileName, PT_AUDIO_MAX_BYTES, PT_TEXT_MAX_LENGTH } from "@/lib/ptPresentation";
+
+const optionsSnapshot = createSessionSnapshot<PTOptions>();
+export const getCachedPTOptions = () => optionsSnapshot.read();
 
 function normalizeCancellation<T extends { status: string; phase: string }>(data: T): T {
   if (!data) return data;
@@ -74,11 +79,13 @@ function answerData(data: PTAnswerResult, sessionId: number, questionId: number,
 
 export const ptApi = {
   getOptions: async (signal?: AbortSignal): Promise<PTOptions> => {
+    const version = getAuthVersion();
     const response = await api.get<ApiResponse<PTOptions>>("/api/v1/pt/options", { signal });
     const data = response.data.data;
     if (!data || !Array.isArray(data.companies) || !Array.isArray(data.tracks) || !Array.isArray(data.preparationMinutes)) {
       throw new Error("PT 설정 응답을 확인하지 못했습니다. 다시 불러와 주세요.");
     }
+    optionsSnapshot.write(data, version);
     return data;
   },
 

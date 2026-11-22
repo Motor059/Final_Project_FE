@@ -116,7 +116,6 @@ export default function usePTPresentation(session: PTSession, flow: ReturnType<t
     generation.current++;
     working.current = false;
     setPreparing(false);
-    recorder.discard();
   };
 
   return {

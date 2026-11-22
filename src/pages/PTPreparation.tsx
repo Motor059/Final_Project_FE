@@ -14,6 +14,14 @@ import PTStartDialog from "@/components/presentation/PTStartDialog";
 import { setPTTextMode } from "@/lib/ptPresentation";
 import type { PTTrack } from "@/types/pt";
 
+const memoTemplateHeadings = [
+  "1. 선택 분야와 결론",
+  "2. 핵심 문제와 선택 근거",
+  "3. 개선 방안과 대안 비교",
+  "4. 실행 계획과 위험 대응",
+  "5. 기대 효과와 검증 방법",
+];
+
 export default function PTPreparation() {
   const navigate = useNavigate();
   const flow = usePTPage("PREPARATION");
@@ -50,8 +58,10 @@ export default function PTPreparation() {
 
   const content = session.task.content;
   const memoLocked = !preparing || remainingSeconds === 0 || busy === "START" || exitOpen;
+  const hasMemoTemplate = memo.split("\n").some((line) => memoTemplateHeadings.includes(line.trim()));
   const addTemplate = () => {
-    const template = ["1. 선택 분야와 결론", "", "2. 핵심 문제와 선택 근거", "", "3. 개선 방안과 대안 비교", "", "4. 실행 계획과 위험 대응", "", "5. 기대 효과와 검증 방법", ""].join("\n");
+    if (memoLocked || hasMemoTemplate) return;
+    const template = `${memoTemplateHeadings.join("\n\n")}\n`;
     changeMemo(`${memo.trimEnd()}${memo.trimEnd() ? "\n\n" : ""}${template}`.slice(0, 30000));
     memoRef.current?.focus();
   };
@@ -77,7 +87,7 @@ export default function PTPreparation() {
               {session.track && <PTTrackGuide key={session.track} content={content} track={session.track} />}
             </section>
             <section className="pt-card pt-memo" aria-labelledby="pt-memo-title">
-              <div className="pt-card-h"><h2 id="pt-memo-title">개인 메모</h2><button type="button" className="pt-tpl" disabled={memoLocked} onClick={addTemplate}>메모 틀 넣기</button></div>
+              <div className="pt-card-h"><h2 id="pt-memo-title">개인 메모</h2><button type="button" className="pt-tpl disabled:cursor-default disabled:opacity-50" disabled={memoLocked || hasMemoTemplate} onClick={addTemplate}>{hasMemoTemplate ? "메모 틀 추가됨" : "메모 틀 넣기"}</button></div>
               <textarea ref={memoRef} className="inp" aria-labelledby="pt-memo-title" value={memo} maxLength={30000} readOnly={memoLocked} onChange={(event) => changeMemo(event.target.value)} placeholder="자유롭게 정리하세요. 필요하면 메모 틀을 넣어 쓸 수 있어요." />
               <div className="pt-memo-foot"><span className="lock"><LockKeyhole size={14} aria-hidden="true" />개인 메모는 평가에 사용되지 않아요.</span><span>{!stored ? "화면 내 임시 보관" : memoLocked ? "읽기 전용" : "이 탭에만 임시 보관"} · {memo.length.toLocaleString()}자</span></div>
             </section>

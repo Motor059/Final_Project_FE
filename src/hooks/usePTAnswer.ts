@@ -18,7 +18,7 @@ export default function usePTAnswer(sessionId: number, question: PTQuestion, flo
   const working = useRef(false);
   const answerable = flow.questions?.phase === "QUESTIONING" && !flow.questions.processing &&
     flow.questions.question?.questionId === question.questionId && flow.questions.nextAction === "ANSWER";
-  const recorder = usePTRecorder(ready && answerable && mode === "AUDIO" && !pending && !flow.busy && !flow.isExpired, Infinity, Infinity);
+  const recorder = usePTRecorder(ready && answerable && mode === "AUDIO" && !pending && (!flow.busy || flow.busy === "CANCEL") && !flow.isExpired, Infinity, Infinity);
 
   useEffect(() => {
     mounted.current = true;
@@ -75,7 +75,6 @@ export default function usePTAnswer(sessionId: number, question: PTQuestion, flo
     generation.current++;
     working.current = false;
     setPreparing(false);
-    recorder.discard();
   };
   return { text, mode, pending, preparing, error, emptyWarning, recorder, changeText, switchToText, submit, abortForCancel,
     closeEmptyWarning: () => setEmptyWarning(false),
