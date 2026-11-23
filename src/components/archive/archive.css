@@ -58,7 +58,8 @@
 .archive-page .tag-listed{font-size:11px;font-weight:600;color:var(--sub);background:var(--soft);padding:2px 7px;border-radius:6px;margin-left:6px}
 .archive-page .ac .empty{padding:14px;font-size:14px;color:var(--muted)}
 .archive-page .picked{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 8px 0 15px;border-radius:9999px;background:var(--ink);color:#fff;font-size:14px;font-weight:600}
-.archive-page .picked button{width:22px;height:22px;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;font-size:13px;line-height:1}
+.archive-page .picked button{display:inline-flex;align-items:center;justify-content:center;flex:none;width:22px;height:22px;padding:0;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;font-size:13px;line-height:1}
+.archive-page .picked button svg{display:block;flex:none}
 .archive-page .panel{background:var(--panel);border-radius:28px;padding:20px 22px}
 .archive-page .frow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .archive-page .frow .lb{font-size:13px;font-weight:600;color:var(--muted);width:40px;flex:none}
@@ -166,7 +167,8 @@
 .archive-page .opt-card .d{font-size:12.5px;opacity:.6;margin-top:4px}
 .archive-page .qrow{display:flex;gap:10px;align-items:flex-start}
 .archive-page .qnum{flex:none;width:26px;height:26px;margin-top:13px;border-radius:50%;background:var(--soft);font-size:12.5px;font-weight:600;color:var(--sub);display:flex;align-items:center;justify-content:center}
-.archive-page .addq{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:16px;border:1.5px dashed #D6D3D1;background:var(--panel);color:var(--sub);font-size:14px;font-weight:600;cursor:pointer}
+.archive-page .addq{display:flex;width:100%;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:12px 20px;border-radius:16px;border:1.5px dashed #D6D3D1;background:var(--panel);color:var(--sub);font-size:14px;font-weight:600;line-height:1.5;white-space:nowrap;cursor:pointer}
+.archive-page .addq svg{flex-shrink:0}
 .archive-page .addq:hover{border-color:var(--ink);color:var(--ink)}
 .archive-page .note{font-size:13px;line-height:1.55;color:var(--sub);background:var(--panel);border-radius:14px;padding:11px 14px}
 .archive-page .confirm{display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;cursor:pointer;padding:18px 20px;border-radius:20px;border:1.5px solid var(--line-2);background:#fff}
@@ -176,7 +178,7 @@
 .archive-page .confirm .t{display:block;font-size:15px;font-weight:650;color:var(--ink)}
 .archive-page .confirm .d{display:block;font-size:13px;color:var(--sub);margin-top:4px;line-height:1.5}
 .archive-page .confirm .w{display:block;font-size:13px;color:var(--danger);margin-top:4px;line-height:1.5}
-.archive-page .submitbar{position:sticky;bottom:0;padding:22px 0 calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,#fff 72%,rgba(255,255,255,0))}
+.archive-page .submitbar{position:sticky;bottom:0;z-index:75;padding:22px 0 calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,#fff 72%,rgba(255,255,255,0))}
 .archive-page .submitbar .btn{width:100%;height:56px;font-size:16px}
 .archive-page .scrim{position:fixed;inset:0;z-index:60;background:rgba(10,10,10,.42);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;animation:archiveFade .18s ease both}
 .archive-page .sheet{width:100%;max-width:400px;background:#fff;border-radius:28px;padding:30px 26px 24px;box-shadow:0 30px 80px rgba(0,0,0,.25);animation:archiveSheet .25s cubic-bezier(.2,.7,.2,1) both}

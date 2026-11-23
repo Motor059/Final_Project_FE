@@ -70,8 +70,8 @@ export function ensureReportAnalysis(sessionId: number, options: {
     if (active()) store().update(sessionId, { state: failed ? 'FAILED' : 'ERROR', error: message });
     stop();
   };
-  const schedule = (delay = POLL_INTERVAL) => {
-    if (active()) operation.timer = setTimeout(() => { void poll(); }, delay);
+  const schedule = (delay = POLL_INTERVAL, next = poll) => {
+    if (active()) operation.timer = setTimeout(() => { void next(); }, delay);
     else stop();
   };
   const applyStatus = async (status: PollingStatusData) => {
@@ -126,6 +126,11 @@ export function ensureReportAnalysis(sessionId: number, options: {
     }
   };
   const start = async () => {
+    if (!active()) { stop(); return; }
+    if (Date.now() - startedAt > MAX_WAIT) {
+      fail('분석 상태 확인이 오래 걸리고 있어요. 잠시 후 다시 확인해 주세요. 서버의 분석을 취소한 것은 아니에요.');
+      return;
+    }
     store().update(sessionId, { state: 'CHECKING', error: null });
     try {
       let status: PollingStatusData | null = null;
@@ -141,12 +146,14 @@ export function ensureReportAnalysis(sessionId: number, options: {
         await poll();
       } else if (status) {
         await applyStatus(status);
+        failures = 0;
         schedule();
       } else fail('아직 분석 결과가 없어요. 다시 시도하면 분석을 요청할 수 있어요.');
     } catch (error) {
       if (!active()) { stop(); return; }
       const status = httpStatus(error);
-      if (!status || status >= 500 || status === 429) schedule();
+      // Initialization must keep its status-check/create step when a request fails.
+      if ((!status || status >= 500 || status === 429) && ++failures <= 3) schedule(POLL_INTERVAL * 2 ** (failures - 1), start);
       else fail(failureMessage(error));
     }
   };

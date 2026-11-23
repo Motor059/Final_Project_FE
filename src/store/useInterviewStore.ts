@@ -3,8 +3,7 @@ import { interviewApi } from '@/api/interviewApi';
 import type { CurrentQuestionData } from '@/api/api';
 import { isAxiosError } from 'axios';
 import { useAlertStore } from '@/store/useAlertStore';
-
-const ANSWER_SECONDS = 180;
+import { ANSWER_SECONDS, resetInterviewTimer, restoredInterviewSeconds } from '@/lib/interviewTimer';
 
 export interface AudioRecordingResult {
   blob: Blob;
@@ -167,6 +166,7 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
   restartAnswer: () => {
     const state = get();
     if (!state.pendingAnswer || state.isSubmitting || state.isPaused || state.questionError || state.isFinished) return;
+    if (state.sessionId && state.currentQuestion) resetInterviewTimer(state.sessionId, state.currentQuestion.questionId);
     set({
       phase: 'RECORDING', pendingAnswer: null, answerError: null,
       answerText: state.inputMode === 'TEXT' ? state.answerText : '',
@@ -266,7 +266,7 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
         phase: 'ASKING',
         inputMode: get().inputMode,
         answerText: '',
-        timeLeft: ANSWER_SECONDS,
+        timeLeft: restoredInterviewSeconds(sessionId, questionData.questionId) ?? ANSWER_SECONDS,
         isSubmitting: false,
         isSkipping: false,
         skipError: null,
@@ -326,7 +326,8 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
     const { sessionId, currentQuestion, inputMode, answerText, stopAudioRecording } = state;
     if (!sessionId || !currentQuestion || state.isSubmitting || state.isFinished || state.isPaused || state.isExitModalOpen || useAlertStore.getState().isOpen) return;
     if (retryPending ? !state.pendingAnswer || !!state.questionError : state.phase !== 'RECORDING') return;
-    if (!retryPending && state.timeLeft === 0) {
+    if (!retryPending && (restoredInterviewSeconds(sessionId, currentQuestion.questionId) ?? state.timeLeft) === 0) {
+      set({ timeLeft: 0 });
       await get().skipCurrentQuestion('TIMEOUT');
       return;
     }
@@ -370,6 +371,7 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
       if (result.nextAction.type === 'FINISH') {
         set({ phase: 'THINKING', isFinished: true, isSubmitting: false, pendingAnswer: null, answerError: null });
       } else if (result.nextAction.type === 'RETRY_INPUT') {
+        resetInterviewTimer(sessionId, questionId);
         set({ phase: 'RECORDING', isSubmitting: false, pendingAnswer: null, answerError: null, timeLeft: ANSWER_SECONDS, recordingAttempt: get().recordingAttempt + 1, audioStatus: 'IDLE', stopAudioRecording: null });
         useAlertStore.getState().showAlert(result.nextAction.message || '답변이 너무 짧거나 인식되지 않았습니다. 다시 답변해 주세요.');
       } else if (result.nextAction.type === 'FOLLOW_UP' || result.nextAction.type === 'NEXT_MAIN') {
@@ -386,6 +388,7 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
         await get().fetchNextQuestion(true);
         return;
       }
+      if (prepared || state.timeLeft === 0) resetInterviewTimer(sessionId, questionId);
       set({
         phase: 'RECORDING', isSubmitting: false, pendingAnswer: null, answerError: null,
         timeLeft: prepared || state.timeLeft === 0 ? ANSWER_SECONDS : state.timeLeft,

@@ -7,9 +7,12 @@ interface DocumentListProps {
   onRename: (id: number, name: string) => void;
   onDelete: (id: number) => void;
   onUpload: () => void;
+  loading?: boolean;
+  error?: boolean;
+  onRetry?: () => void;
 }
 
-export default function DocumentList({ documents, onRename, onDelete, onUpload }: DocumentListProps) {
+export default function DocumentList({ documents, onRename, onDelete, onUpload, loading = false, error = false, onRetry }: DocumentListProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draftName, setDraftName] = useState("");
   const startEditing = (document: SupportDocument) => { setEditingId(document.id); setDraftName(document.name); };
@@ -24,12 +27,12 @@ export default function DocumentList({ documents, onRename, onDelete, onUpload }
   return <section className="member-documents" aria-labelledby="support-documents-title">
     <div className="member-documents-heading">
       <div className="member-documents-title-row">
-        <h2 id="support-documents-title" className="member-documents-title">내 지원 서류 <span>{documents.length}개</span></h2>
+        <h2 id="support-documents-title" className="member-documents-title">내 지원 서류 {!loading && !error && <span>{documents.length}개</span>}</h2>
         {documents.length > 0 && <button type="button" onClick={onUpload} className="member-button member-button--upload"><Plus size={18} aria-hidden="true" />서류 올리기</button>}
       </div>
       <p className="member-documents-description">올린 서류는 면접 설정 화면에서도 그대로 골라 쓸 수 있어요. PDF만 올릴 수 있어요.</p>
     </div>
-    {documents.length === 0 ? <div className="member-empty-state">
+    {loading ? <p role="status" className="member-documents-description devoir-loading-enter">지원 서류를 확인하고 있어요.</p> : error ? <div role="alert" className="member-notice">지원 서류를 불러오지 못했어요. {onRetry && <button type="button" className="member-text-button" onClick={onRetry}>다시 불러오기</button>}</div> : documents.length === 0 ? <div className="member-empty-state">
       <p>아직 올린 지원 서류가 없어요.</p>
       <button type="button" onClick={onUpload} className="member-button member-button--upload mt-5"><Plus size={18} aria-hidden="true" />지원 서류 올리기 (PDF)</button>
     </div> : <div className="member-document-list">

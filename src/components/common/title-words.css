@@ -1,0 +1,10 @@
+/* The same word entrance used by the home hero and question archive. */
+@keyframes devoirTitleWord {
+  from { opacity: 0; transform: translateY(.45em); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+html .has-title-words { animation: none !important; opacity: 1; transform: none; filter: none; }
+html .page-title-word {
+  display: inline-block;
+  animation: devoirTitleWord .9s cubic-bezier(.2,.75,.2,1) var(--title-word-delay, .06s) both !important;
+}

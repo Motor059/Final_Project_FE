@@ -3,12 +3,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 import AdvancedSetting from "@/components/setup/AdvancedSetting";
 import SelectionCard from "@/components/setup/SelectionCard";
-import InterviewSetupLayout from "@/components/setup/InterviewSetupLayout";
+import InterviewSetupLayout, { InterviewSetupFrame } from "@/components/setup/InterviewSetupLayout";
+import { ptApi } from "@/api/ptApi";
+import { hasMemberSession, hasUsableGuestToken } from "@/lib/authStorage";
 import PTSetupForm from "@/components/setup/PTSetupForm";
 import { Button } from "@/components/ui/button";
-import Header from "@/components/common/Header";
 import LoadingState, { LoadingIndicator } from "@/components/common/LoadingState";
-import PageLoading from "@/components/common/PageLoading";
+import { InterviewSetupSkeleton } from "@/components/common/PageLoading";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import useSetup from "@/hooks/useSetup";
 import useDocuments from "@/hooks/useDocuments";
@@ -53,6 +54,12 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
   } = useSetup();
 
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  useEffect(() => {
+    if (!hasMemberSession() && !hasUsableGuestToken()) return;
+    const controller = new AbortController();
+    void ptApi.getOptions(controller.signal).catch(() => { /* The PT form provides retry if selected. */ });
+    return () => controller.abort();
+  }, [isLoggedIn]);
 
   const {
     documents,
@@ -160,43 +167,21 @@ function SetupForm({ initialSetup }: { initialSetup: InterviewSetup | null }) {
     }
   };
 
-  if (interviewType === "PT") {
-    return <PTSetupForm initialSetup={initialSetup?.interviewType === "PT" ? initialSetup : null} onSelectQA={() => setInterviewType("QA")} />;
-  }
-
-  if (isOptionsLoading) {
-    return <PageLoading layout="setup" title="면접 설정을 불러오고 있어요" />;
-  }
-
-  if (!options) {
-    return (
-      <>
-        <Header />
-        <main className="min-h-screen bg-background pt-[68px]">
-          <div className="mx-auto w-full max-w-[760px] px-5 py-12 sm:px-10 sm:py-14">
-            <p className="text-[14px] text-muted-foreground">
-              면접 설정을 불러오지 못했습니다.
-            </p>
-            <Button type="button" variant="outline" className="mt-4" onClick={() => setInterviewType("PT")}>PT 면접 설정</Button>
-          </div>
-        </main>
-      </>
-    );
-  }
-
   const companyDetails: Record<string, string> = { BIG_TECH_SW: "인성, 직무 PT, 임원 면접", SERVICE: "기술 심화, 라이브 코딩, 컬처핏", FINANCE_IT: "기술, 금융 도메인, 보안과 규제" };
   const stageDescriptions: Record<string, string> = { TECHNICAL: "CS 기초, 프로젝트, 기술 선택 이유", PERSONALITY: "경험, 협업, 지원 동기" };
-  return <InterviewSetupLayout type="QA" locked={isStarting} onTypeChange={setInterviewType} footer={<div className="submitbar">
-    <button type="button" className="btn ink" onClick={() => { void handleStart(); }} disabled={!canStart}>{isStarting ? <><LoadingIndicator size="sm" />면접 준비 중</> : "면접 시작하기"}</button>
+  return <InterviewSetupFrame type={interviewType}>
+    {interviewType === 'PT' ? <PTSetupForm withinPage initialSetup={initialSetup?.interviewType === 'PT' ? initialSetup : null} onSelectQA={() => setInterviewType('QA')} /> : <InterviewSetupLayout withinPage type="QA" locked={isStarting} loading={isOptionsLoading} onTypeChange={setInterviewType} footer={<div className="submitbar">
+    <button type="button" className="btn ink" onClick={() => { void handleStart(); }} disabled={!canStart || isOptionsLoading || !options}>{isStarting ? <><LoadingIndicator size="sm" />면접 준비 중</> : "면접 시작하기"}</button>
     <span className="hint pt-submit-hint">기업 유형과 면접 단계를 고르면 시작할 수 있어요</span>
   </div>}>
-    <div className="su-sub">
+    {isOptionsLoading ? <InterviewSetupSkeleton /> : !options ? <div role="alert" className="pt-err">면접 설정을 불러오지 못했습니다.<Button type="button" variant="outline" className="mt-4" onClick={() => setInterviewType("PT")}>PT 면접 설정</Button></div> : <div className="su-sub">
       <div className="field"><div className="fl"><span className="req">필수</span>기업 유형</div><div className="opts c3">{options.companyTypes?.map((item) => <SelectionCard reference key={item.code} title={item.label} description={item.example} detail={companyDetails[item.code]} selected={companyType === item.code} onClick={() => setCompanyType(item.code)} />)}</div></div>
       <div className="field"><div className="fl"><span className="req">필수</span>면접 단계</div><div className="opts c2">{options.stages?.map((item) => <SelectionCard reference key={item.code} title={item.label} description={stageDescriptions[item.code]} selected={interviewStage === item.code} onClick={() => setInterviewStage(item.code)} />)}</div></div>
       <AdvancedSetting canUseDocuments={isLoggedIn} jobRole={jobRole} jobRoleOptions={options.jobRoleChips} companyName={companyName} jobDescription={jobDescription} githubUrl={githubUrl} documentFile={documentFile} onJobRoleChange={setJobRole} onCompanyNameChange={setCompanyName} onJobDescriptionChange={setJobDescription} onGithubUrlChange={setGithubUrl} onDocumentFileChange={setDocumentFile} documents={documents} selectedDocId={availableDocId} initiallyOpen={!!qaSetup && !!(qaSetup.jobRole || qaSetup.companyName || qaSetup.jobDescription || qaSetup.docId)} onSelectedDocIdChange={setSelectedDocId} />
       {isRestoringDocument && <LoadingState inline title="이전 설정의 서류를 확인하고 있어요" />}
       {isPreviousDocumentUnavailable && <p className="hint pt-danger" role="status">이전 설정의 서류를 사용할 수 없습니다. 서류를 다시 선택하거나 서류 없이 시작해 주세요.</p>}
-    </div>
-    {isError && <div className="pt-err" role="alert">{errorMessage || "요청 처리 중 문제가 발생했습니다."}</div>}
-  </InterviewSetupLayout>;
+    </div>}
+    {isError && options && <div className="pt-err" role="alert">{errorMessage || "요청 처리 중 문제가 발생했습니다."}</div>}
+  </InterviewSetupLayout>}
+  </InterviewSetupFrame>;
 }

@@ -3,14 +3,14 @@ import { useAuthStore } from "@/store/authStore";
 import { useArchivePreviewStore } from "@/store/useArchivePreviewStore";
 
 export default function ArchivePreviewSessionSync() {
-  const owner = useAuthStore((state) => state.isLoggedIn ? `member:${state.user?.id ?? "pending"}` : "guest");
-  const previousOwner = useRef(owner);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
+  const previousVersion = useRef(sessionVersion);
   const reset = useArchivePreviewStore((state) => state.reset);
   useLayoutEffect(() => {
-    if (previousOwner.current !== owner) {
-      previousOwner.current = owner;
+    if (previousVersion.current !== sessionVersion) {
+      previousVersion.current = sessionVersion;
       reset();
     }
-  }, [owner, reset]);
+  }, [sessionVersion, reset]);
   return null;
 }

@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 import { useBeforeUnload, useBlocker } from "react-router-dom";
-import { ArrowLeft, Check, Plus } from "lucide-react";
+import { ArrowLeft, Check, Plus, X } from "lucide-react";
 import CompanySearch from "@/components/archive/CompanySearch";
+import ArchiveDatePicker from "@/components/archive/ArchiveDatePicker";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { archiveCompanyLabels, archiveRoles, localInterviewMonth } from "@/lib/archiveDisplay";
+import { archiveCompanyLabels, archiveRoles, localInterviewDate } from "@/lib/archiveDisplay";
 import type { ArchiveCompany, ArchiveCompanyType, ArchiveFormat, ArchiveRecord, ArchiveStage, ArchiveSubmission } from "@/types/archive";
 
 interface ArchiveFormProps {
@@ -19,8 +20,8 @@ export default function ArchiveForm({ companies, records, remaining, onSubmit, o
   const [companyQuery, setCompanyQuery] = useState("");
   const [companyType, setCompanyType] = useState<ArchiveCompanyType | null>(null);
   const [stage, setStage] = useState<ArchiveStage | null>(null);
-  const [initialMonth] = useState(localInterviewMonth);
-  const [period, setPeriod] = useState(initialMonth);
+  const [initialDate] = useState(localInterviewDate);
+  const [period, setPeriod] = useState(initialDate);
   const [questions, setQuestions] = useState([{ id: 1, text: "" }]);
   const [role, setRole] = useState("");
   const [otherRole, setOtherRole] = useState("");
@@ -30,14 +31,15 @@ export default function ArchiveForm({ companies, records, remaining, onSubmit, o
   const nextQuestionId = useRef(2);
   const focusNewQuestion = useRef(false);
   const submitted = useRef(false);
-  const dirty = !!(company || companyQuery.trim() || companyType || stage || format !== "qa" || period !== initialMonth || questions.length > 1 || questions.some((item) => item.text.trim()) || role || tip.trim() || consent);
+  const dirty = !!(company || companyQuery.trim() || companyType || stage || format !== "qa" || period !== initialDate || questions.length > 1 || questions.some((item) => item.text.trim()) || role || tip.trim() || consent);
   const blocker = useBlocker(({ currentLocation, nextLocation }) => !submitted.current && dirty
     && currentLocation.pathname + currentLocation.search !== nextLocation.pathname + nextLocation.search);
   useBeforeUnload(useCallback((event: BeforeUnloadEvent) => {
     if (dirty && !submitted.current) { event.preventDefault(); event.returnValue = ""; }
   }, [dirty]));
   const filled = questions.map((item) => item.text.trim()).filter(Boolean);
-  const validPeriod = /^\d{4}-(0[1-9]|1[0-2])$/.test(period) && period <= localInterviewMonth();
+  const periodDate = new Date(`${period}T00:00:00`);
+  const validPeriod = !Number.isNaN(periodDate.getTime()) && localInterviewDate(periodDate) === period && period <= localInterviewDate();
   const ready = !!(company && companyType && stage && validPeriod && filled.length && filled.length <= remaining && consent);
   const selectCompany = (value: ArchiveCompany) => {
     setCompany(value); setCompanyQuery("");
@@ -61,7 +63,7 @@ export default function ArchiveForm({ companies, records, remaining, onSubmit, o
             {([['qa', '일반 면접', '질문과 답변으로 진행'], ['pt', 'PT 면접', '주제 발표 후 질의응답']] as const).map(([value, title, description]) => <button type="button" className={`opt-card ${format === value ? "on" : ""}`} key={value} aria-pressed={format === value} onClick={() => { setFormat(value); if (value === "pt") setStage("tech"); }}><span className="t">{title}</span><span className="d">{description}</span></button>)}
           </div></fieldset>
           <div className="field"><span className="fl"><span className="req">필수</span>회사명</span>
-            {company ? <div><span className="picked">{company.display}{company.name !== company.display && <span className="picked-legal">{company.name}</span>}{company.id === "new" && <span className="picked-legal">직접 등록</span>}<button type="button" onClick={() => setCompany(null)} aria-label="회사 다시 고르기">×</button></span></div>
+            {company ? <div><span className="picked">{company.display}{company.name !== company.display && <span className="picked-legal">{company.name}</span>}{company.id === "new" && <span className="picked-legal">직접 등록</span>}<button type="button" onClick={() => setCompany(null)} aria-label="회사 다시 고르기"><X size={13} aria-hidden="true" /></button></span></div>
               : <CompanySearch companies={companies} query={companyQuery} onQueryChange={setCompanyQuery} onSelect={selectCompany} label="등록할 회사명" onCreate={(name) => selectCompany({ id: "new", name, display: name, listed: false, aliases: [] })} />}
             <p className="hint">한글, 영문, 브랜드명 어느 것으로 검색해도 같은 회사로 묶여요.</p>
           </div>
@@ -70,7 +72,7 @@ export default function ArchiveForm({ companies, records, remaining, onSubmit, o
           </div></fieldset>
           <div className="opts c2 archive-stage-period">
             <fieldset className="field"><legend className="fl"><span className="req">필수</span>면접 단계</legend><div className="opts c2">{([['tech', '기술'], ['exec', '인성']] as const).map(([value, title]) => <button type="button" key={value} className={`opt-card centered ${stage === value ? "on" : ""} ${format === "pt" && value === "exec" ? "off" : ""}`} aria-pressed={stage === value} disabled={format === "pt" && value === "exec"} onClick={() => setStage(value)}><span className="t">{title}</span></button>)}</div></fieldset>
-            <div className="field"><label className="fl" htmlFor="archive-period"><span className="req">필수</span>면접 시기</label><input id="archive-period" className="inp" type="month" max={localInterviewMonth()} value={period} required onChange={(event) => setPeriod(event.target.value)} /><span className="hint">질문이 얼마나 최신인지 판단하는 데 쓰여요</span></div>
+            <div className="field"><label className="fl" htmlFor="archive-period"><span className="req">필수</span>면접 시기</label><ArchiveDatePicker id="archive-period" value={period} onChange={setPeriod} describedBy="archive-period-hint" /><span className="hint" id="archive-period-hint">질문이 얼마나 최신인지 판단하는 데 쓰여요</span></div>
           </div>
           <fieldset className="field"><legend className="fl"><span className="req">필수</span>질문 내용</legend><p className="hint">한 번에 여러 개 등록할 수 있어요.</p>
             {format === "pt" && <div className="note">PT 면접은 발표 주제와 발표 뒤에 받은 질문을 함께 적어 주세요. 면접 단계는 기술로 고정돼요.</div>}

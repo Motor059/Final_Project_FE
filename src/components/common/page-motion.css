@@ -7,6 +7,8 @@
   to { opacity: 1; transform: none; filter: none; }
 }
 html [data-page-motion="pending"] { opacity: 0; }
+/* The common controller owns headings, including between DOM replacement and scanning. */
+html .pt-ref .pv-head .pv-h1 { animation: none; }
 /* Explicit product motion: these finite entrances remain enabled in every system motion setting. */
 html [data-page-motion="visible"] {
   opacity: 1;
@@ -16,4 +18,12 @@ html [data-page-motion="visible"][data-page-motion-kind="title"] {
   animation-name: devoirPageTitle !important;
   animation-duration: .9s !important;
 }
+html [data-page-motion="settled"] { opacity: 1; animation: none !important; transform: none; filter: none; }
 html [data-page-motion="pending"]:focus-within { opacity: 1; }
+@keyframes devoirSkeletonReveal { from { opacity: 0; } to { opacity: 1; } }
+.devoir-loading-skeleton.page-content-skeleton {
+  animation: devoirSkeletonReveal .18s ease .18s backwards, devoir-loading-breathe 2s ease-in-out .36s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .devoir-loading-skeleton.page-content-skeleton { animation: none; opacity: 1; }
+}

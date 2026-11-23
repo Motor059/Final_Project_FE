@@ -1,53 +1,61 @@
 import { useEffect, useState } from "react";
-import { deleteDocument, getDocuments, renameDocument, uploadDocument } from "@/api/documentApi";
+import { deleteDocument, getCachedDocuments, getDocuments, renameDocument, uploadDocument } from "@/api/documentApi";
+import { getAuthVersion } from "@/lib/authStorage";
 import type { DocumentItem } from "@/types/document";
 
+interface DocumentQuery { version: number; data: DocumentItem[] | null; error: boolean; }
+
 export default function useDocuments(enabled: boolean) {
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [isLoading, setIsLoading] = useState(enabled);
-  const [isError, setIsError] = useState(false);
+  const version = getAuthVersion();
+  const [query, setQuery] = useState<DocumentQuery>(() => ({ version, data: enabled ? getCachedDocuments() : null, error: false }));
+  const [retryCount, setRetryCount] = useState(0);
+  const current = query.version === version ? query : null;
 
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    const fetchDocuments = async () => {
-      setIsLoading(true);
-      setIsError(false);
+    const load = async () => {
       try {
         const data = await getDocuments();
-        if (active) setDocuments(data);
+        if (active && version === getAuthVersion()) setQuery({ version, data, error: false });
       } catch (error) {
-        if (active) {
+        if (active && version === getAuthVersion()) {
           console.error("서류 목록 조회 실패:", error);
-          setIsError(true);
+          setQuery((previous) => previous.version === version && previous.data !== null
+            ? previous : { version, data: null, error: true });
         }
-      } finally {
-        if (active) setIsLoading(false);
       }
     };
-    void fetchDocuments();
+    void load();
     return () => { active = false; };
-  }, [enabled]);
+  }, [enabled, version, retryCount]);
 
   const addDocument = async (file: File) => {
     const document = await uploadDocument(file);
-    setDocuments((current) => [...current, document]);
+    if (version !== getAuthVersion()) return;
+    setQuery((previous) => ({ version, data: [...(previous.version === version ? previous.data ?? [] : []).filter((item) => item.docId !== document.docId), document], error: false }));
   };
   const changeDocumentName = async (docId: number, fileName: string) => {
     const updated = await renameDocument(docId, fileName);
-    setDocuments((current) => current.map((document) =>
-      document.docId === docId ? { ...document, fileName: updated.fileName } : document,
-    ));
+    if (version !== getAuthVersion()) return;
+    setQuery((previous) => previous.version === version && previous.data !== null
+      ? { ...previous, data: previous.data.map((item) => item.docId === docId ? { ...item, fileName: updated.fileName } : item) } : previous);
   };
   const removeDocument = async (docId: number) => {
     await deleteDocument(docId);
-    setDocuments((current) => current.filter((document) => document.docId !== docId));
+    if (version !== getAuthVersion()) return;
+    setQuery((previous) => previous.version === version && previous.data !== null
+      ? { ...previous, data: previous.data.filter((item) => item.docId !== docId) } : previous);
+  };
+  const retry = () => {
+    setQuery((previous) => previous.version === version ? { ...previous, error: false } : { version, data: null, error: false });
+    setRetryCount((count) => count + 1);
   };
 
   return {
-    documents: enabled ? documents : [],
-    isLoading: enabled && isLoading,
-    isError: enabled && isError,
-    addDocument, changeDocumentName, removeDocument,
+    documents: enabled ? current?.data ?? [] : [],
+    isLoading: enabled && current?.data == null && !current?.error,
+    isError: enabled && !!current?.error,
+    addDocument, changeDocumentName, removeDocument, retry,
   };
 }

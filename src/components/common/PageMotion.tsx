@@ -3,13 +3,13 @@ import { useLocation, useNavigationType } from 'react-router-dom';
 import './page-motion.css';
 
 const targets = [
-  '.member-page-heading > *', '.member-history-stat', '.member-section-title',
+  '.member-page-heading > :not(.has-title-words)', '.member-history-stat', '.member-section-title',
   '.member-subsection-title', '.member-history-card', '.member-empty-state',
   '.member-profile-section', '.member-documents-heading', '.member-document-card',
   '.member-setting-card', '.member-questions-section', '[aria-labelledby="member-account-title"]',
   '.archive-page .hero h1', '.archive-page .hero p',
   '.archive-page .hero .stat', '.archive-page .hero .search', '.archive-page .panel.filters',
-  '.pt-ref .pv-head > *', '.pt-ref .form > .field', '.pt-ref .su-sub > .field',
+  '.pt-ref .pv-head > :not(.has-title-words)', '.pt-ref .form > .field', '.pt-ref .su-sub > .field',
   '.pt-ref .pt-task-slot', '.pt-ref .pt-side > .pt-card',
   '.pt-ref .pt-stage > .pt-ctx', '.pt-ref .pt-stage > .pt-fchip',
 ].join(',');
@@ -28,6 +28,8 @@ export default function PageMotion() {
     const root = document.getElementById('root');
     if (!root) return;
     const elements = new Set<HTMLElement>();
+    // A loading shell can be replaced without starting its heading entrance again.
+    const enteredHeadings = new Set<string>();
     let scanFrame = 0;
     let observerAlive = false;
     const observer = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
@@ -47,23 +49,36 @@ export default function PageMotion() {
         elements.add(element);
         const index = element.parentElement ? Array.from(element.parentElement.children).indexOf(element) : 0;
         const isTitle = element.matches('h1, .pv-h1');
+        const isHeading = element.parentElement?.matches('.member-page-heading, .pv-head');
+        const headingKey = isHeading ? `${element.parentElement?.className}:${element.tagName}:${index}` : null;
+        if (headingKey && enteredHeadings.has(headingKey)) {
+          element.dataset.pageMotion = 'settled';
+          return;
+        }
+        if (headingKey) enteredHeadings.add(headingKey);
         const isCard = element.matches('.member-history-card, .member-document-card, .member-history-stat');
         const delay = isCard ? 160 + Math.min(index, 3) * 90 : Math.min(index, 4) * 90;
         element.style.setProperty('--page-enter-delay', `${delay}ms`);
         element.dataset.pageMotionKind = isTitle ? 'title' : 'content';
-        element.dataset.pageMotion = observer ? 'pending' : 'visible';
-        observer?.observe(element);
+        const bounds = element.getBoundingClientRect();
+        const inViewport = bounds.top < window.innerHeight - 24 && bounds.bottom > 0;
+        // Above-the-fold content must not wait for an asynchronous observer to appear.
+        element.dataset.pageMotion = !observer || inViewport ? 'visible' : 'pending';
+        if (observer && !inViewport) observer.observe(element);
       });
     };
     const requestScan = () => {
       if (!scanFrame) scanFrame = requestAnimationFrame(scan);
     };
-    const mutations = new MutationObserver(requestScan);
+    // Mark arriving content before paint, so it cannot flash visible before its entrance.
+    const mutations = new MutationObserver(scan);
     scan();
     mutations.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy', 'hidden'] });
     window.addEventListener('resize', requestScan);
     const fallback = window.setTimeout(() => {
-      if (!observerAlive) elements.forEach((element) => { element.dataset.pageMotion = 'visible'; });
+      if (!observerAlive) elements.forEach((element) => {
+        if (element.dataset.pageMotion === 'pending') element.dataset.pageMotion = 'visible';
+      });
     }, 1500);
     return () => {
       observer?.disconnect();

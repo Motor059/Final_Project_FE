@@ -44,8 +44,8 @@ export default function ArchiveCard({ record, company, liked, popular, onLike, o
   return (
     <article id={`archive-record-${record.id}`} className={`qcard arccard ${highlight ? "is-highlighted" : ""}`}>
       <div className="qhead">
-        <div className="qmeta"><span className="qco">{company.display}</span><span className="qtype">{archiveCompanyLabels[record.companyType]}</span>{record.format === "pt" && <span className="badge pt">PT</span>}<span className="badge">{record.stage === "tech" ? "기술" : "인성"}</span>{record.role && <span className="badge">{record.role}</span>}{record.mine && <span className="badge mine">내 면접</span>}<span className="qdate qdate-m">{record.period.replace("-", ".")}</span></div>
-        <div className="qright"><span className="qdate">{record.period.replace("-", ".")}</span>
+        <div className="qmeta"><span className="qco">{company.display}</span><span className="qtype">{archiveCompanyLabels[record.companyType]}</span>{record.format === "pt" && <span className="badge pt">PT</span>}<span className="badge">{record.stage === "tech" ? "기술" : "인성"}</span>{record.role && <span className="badge">{record.role}</span>}{record.mine && <span className="badge mine">내 면접</span>}<span className="qdate qdate-m">{record.period.replaceAll("-", ".")}</span></div>
+        <div className="qright"><span className="qdate">{record.period.replaceAll("-", ".")}</span>
           <div className="kebab" ref={menu}>
             <button type="button" className="kbtn" ref={menuButton} aria-label={`${company.display} 면접 기록 메뉴`} aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={`${id}-menu`} onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={18} aria-hidden="true" /></button>
             {menuOpen && <div className="kmenu" id={`${id}-menu`} role="menu" onBlur={(event) => { if (!event.currentTarget.parentElement?.contains(event.relatedTarget)) setMenuOpen(false); }}>

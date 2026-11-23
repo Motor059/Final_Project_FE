@@ -1,9 +1,30 @@
 import type { UserResponse } from "@/types/user";
 
 let authVersion = 0;
+let observedSession: string | null | undefined;
+export const AUTH_SESSION_STORAGE_KEYS: readonly string[] = ['accessToken', 'refreshToken', 'authSessionType', 'authSessionId', 'userInfo'];
+
+function sessionFingerprint() {
+  const token = localStorage.getItem('accessToken');
+  if (!token) return null;
+  return `${getAuthSessionIdentity() ?? token}|${localStorage.getItem('authSessionId') ?? ''}`;
+}
 
 export function getAuthVersion() {
+  const session = sessionFingerprint();
+  if (observedSession !== undefined && observedSession !== session) authVersion++;
+  observedSession = session;
   return authVersion;
+}
+
+function markSessionChanged() {
+  observedSession = sessionFingerprint();
+  authVersion++;
+  window.dispatchEvent(new Event('devoir:auth-session-change'));
+}
+
+function newSessionId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function accessTokenClaims(token: string): Record<string, unknown> | null {
@@ -49,13 +70,13 @@ export function hasUsableGuestToken() {
 
 export function clearGuestSession() {
   if (!isGuestSession()) return;
-  authVersion++;
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('userInfo');
   localStorage.removeItem('authSessionType');
   localStorage.removeItem('guestTokenExpiresAt');
-  window.dispatchEvent(new Event('devoir:auth-session-change'));
+  localStorage.removeItem('authSessionId');
+  markSessionChanged();
 }
 
 export function saveGuestSession(accessToken: string) {
@@ -63,41 +84,41 @@ export function saveGuestSession(accessToken: string) {
   const expiresAt = typeof exp === 'number' && Number.isFinite(exp)
     ? exp * 1000 : Date.now() + 6 * 60 * 60 * 1000;
   if (expiresAt <= Date.now()) throw new Error('만료된 체험 인증을 받았습니다. 잠시 후 다시 시도해 주세요.');
-  authVersion++;
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('userInfo');
   localStorage.setItem('authSessionType', 'GUEST');
   localStorage.setItem('guestTokenExpiresAt', String(expiresAt));
   localStorage.setItem('accessToken', accessToken);
-  window.dispatchEvent(new Event('devoir:auth-session-change'));
+  localStorage.setItem('authSessionId', newSessionId());
+  markSessionChanged();
 }
 
 export function saveAuthSession(tokens: { accessToken: string; refreshToken: string }, user: UserResponse) {
-  authVersion++;
   localStorage.removeItem('authSessionType');
   localStorage.removeItem('guestTokenExpiresAt');
   localStorage.setItem("accessToken", tokens.accessToken);
   localStorage.setItem("refreshToken", tokens.refreshToken);
   localStorage.setItem("userInfo", JSON.stringify(user));
   localStorage.removeItem("pendingTerms");
-  window.dispatchEvent(new Event('devoir:auth-session-change'));
+  localStorage.setItem('authSessionId', newSessionId());
+  markSessionChanged();
 }
 
 export function clearAuthStorage() {
-  authVersion++;
   localStorage.removeItem('authSessionType');
   localStorage.removeItem('guestTokenExpiresAt');
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("userInfo");
   localStorage.removeItem("pendingTerms");
+  localStorage.removeItem('authSessionId');
   sessionStorage.removeItem("interviewSetup");
   sessionStorage.removeItem("interviewSessionId");
   sessionStorage.removeItem("reportLoginReturn");
   sessionStorage.removeItem("ptCreateRequest");
   sessionStorage.removeItem("ptPreparationSessionId");
   sessionStorage.removeItem("devoirReportAnalysis");
-  window.dispatchEvent(new Event('devoir:auth-session-change'));
+  markSessionChanged();
 }
 
 export function readCachedUser(): UserResponse | null {
@@ -114,7 +135,12 @@ export function readCachedUser(): UserResponse | null {
       "id" in user && typeof user.id === "number" &&
       "nickname" in user && typeof user.nickname === "string" &&
       "createdAt" in user && typeof user.createdAt === "string"
-    ) return user as UserResponse;
+    ) {
+      const token = localStorage.getItem('accessToken');
+      const subject = token ? accessTokenClaims(token)?.sub : undefined;
+      if ((typeof subject === 'number' || (typeof subject === 'string' && /^\d+$/.test(subject))) && Number(subject) !== user.id) return null;
+      return user as UserResponse;
+    }
   } catch {
     localStorage.removeItem("userInfo");
     return null;

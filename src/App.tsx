@@ -15,18 +15,24 @@ import Archive from "./pages/Archive";
 
 import ReportAnalysisManager from "@/components/report/ReportAnalysisManager";
 import PageMotion from "@/components/common/PageMotion";
+import AuthSessionSync from "@/components/common/AuthSessionSync";
+import { useAuthStore } from "@/store/authStore";
+
+function AppLayout() {
+  const externalSessionVersion = useAuthStore((state) => state.externalSessionVersion);
+  return <>
+    <AuthSessionSync />
+    <ArchivePreviewSessionSync />
+    <GlobalAlertModal />
+    <ReportAnalysisManager />
+    <PageMotion />
+    <Outlet key={externalSessionVersion} />
+  </>;
+}
 
 const router = createBrowserRouter([
   {
-    element: (
-      <>
-        <ArchivePreviewSessionSync />
-        <GlobalAlertModal />
-        <ReportAnalysisManager />
-        <PageMotion />
-        <Outlet />
-      </>
-    ),
+    element: <AppLayout />,
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/setup", element: <Setup /> },

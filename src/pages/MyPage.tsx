@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import Header from "@/components/common/Header";
 import MemberPageHero from "@/components/common/MemberPageHero";
 import LoadingState from "@/components/common/LoadingState";
-import PageLoading from "@/components/common/PageLoading";
+import MemberPageBody from "@/components/common/MemberPageBody";
 import AccountSection from "@/components/mypage/AccountSection";
 import DocumentList, {
   type SupportDocument,
@@ -26,6 +26,9 @@ export default function MyPage() {
   const {
     user,
     documents,
+    documentsError,
+    documentsLoading,
+    retryDocuments,
     isLoading,
     isError,
     addDocument,
@@ -145,25 +148,6 @@ export default function MyPage() {
 
   if (!isLoggedIn) return <Navigate to="/" replace />;
 
-  if (isLoading) {
-    return <PageLoading layout="profile" title="내 정보와 서류를 불러오고 있어요" />;
-  }
-
-  if (isError) {
-    return (
-      <div className="member-page">
-        <Header hideBackButton />
-        <MemberPageHero eyebrow="마이페이지" title="내 정보와 지원 서류" />
-        <main className="member-page-container member-page-body">
-          <p className="text-[14px] text-muted-foreground">
-            마이페이지 정보를 불러오지 못했습니다.
-          </p>
-          {isLoggedIn && <div className="mt-8"><MyQuestionsSection /><AccountSection onLogout={handleLogout} onWithdraw={handleWithdraw} /></div>}
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="member-page">
       <Header hideBackButton />
@@ -177,8 +161,13 @@ export default function MyPage() {
       )}
 
       <div inert={isWithdrawing} aria-busy={isWithdrawing}>
+      {isLoading && <p role="status" className="sr-only">내 정보와 서류를 불러오고 있어요</p>}
       <MemberPageHero eyebrow="마이페이지" title="내 정보와 지원 서류" />
-      <main className="member-page-container member-page-body">
+      <MemberPageBody layout="profile" loading={false} pending={isLoading}>
+      {isError ? <>
+        <p role="alert" className="text-[14px] text-muted-foreground">마이페이지 정보를 불러오지 못했습니다.</p>
+        <div className="mt-8"><MyQuestionsSection /><AccountSection onLogout={handleLogout} onWithdraw={handleWithdraw} /></div>
+      </> : <>
 
         <section className="member-profile-section">
           <h2 className="member-section-eyebrow">
@@ -233,12 +222,13 @@ export default function MyPage() {
                     닉네임
                   </p>
                   <p className="member-profile-name">
-                    {user?.nickname || "카카오사용자"}님
+                    {user ? `${user.nickname}님` : "닉네임을 확인하고 있어요"}
                   </p>
                 </div>
               </div>
               <button
                 onClick={handleEditNicknameStart}
+                disabled={!user}
                 className="member-button"
               >
                 닉네임 변경
@@ -250,6 +240,9 @@ export default function MyPage() {
         <section>
           <DocumentList
             documents={supportDocuments}
+            loading={documentsLoading}
+            error={documentsError}
+            onRetry={retryDocuments}
             onRename={handleRename}
             onDelete={handleDelete}
             onUpload={handleUploadClick}
@@ -308,7 +301,8 @@ export default function MyPage() {
           onChange={handleFileChange}
           className="hidden"
         />
-      </main>
+      </>}
+      </MemberPageBody>
       </div>
     </div>
   );
