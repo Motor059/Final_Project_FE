@@ -34,6 +34,14 @@
 .member-history-value strong { font-size: 40px; line-height: 1.1; font-weight: 650; letter-spacing: -.035em; }
 .member-history-value span { font-size: 15px; color: var(--member-muted); }
 .member-history-groups { display: flex; flex-direction: column; gap: 32px; }
+.member-history-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 22px; }
+.member-history-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 18px; min-width: 0; }
+.member-page .member-history-toolbar .member-section-title { margin: 0; }
+.member-history-filters { display: inline-flex; gap: 4px; padding: 4px; border-radius: 9999px; background: var(--member-panel); }
+.member-history-filters button { border: 0; border-radius: 9999px; padding: 9px 16px; background: transparent; color: #78716c; font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: color .15s, background-color .15s; }
+.member-history-filters button.on { color: #fff; background: #0a0a0a; }
+.member-history-filters button:focus-visible { outline: 2px solid #0a0a0a; outline-offset: 3px; }
+.member-history-filters button:disabled { opacity: .4; cursor: not-allowed; }
 .member-history-list { display: flex; flex-direction: column; gap: 12px; }
 .member-history-card {
   display: flex; align-items: center; justify-content: space-between; gap: 28px;
@@ -126,7 +134,6 @@
 .member-page .member-account-row.is-danger { color: #ef4444; }
 .member-page .member-account-row span:last-child { color: var(--member-muted); font-size: 19px; }
 .member-page .member-notice { margin: 0; padding: 24px 28px; border: 1px solid var(--member-line); border-radius: 26px; font-size: 14px; line-height: 1.7; color: #78716c; }
-.member-history-title-count { display: inline-block; min-width: 2ch; text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
   .member-page-container { padding-left: 20px; padding-right: 20px; }
   .member-page-hero { padding-top: 44px; padding-bottom: 24px; }

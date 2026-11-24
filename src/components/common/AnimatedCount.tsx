@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 export default function AnimatedCount({ value }: { value: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [display, setDisplay] = useState(value);
+  const canObserve = typeof IntersectionObserver !== 'undefined';
   useEffect(() => {
-    if (!('IntersectionObserver' in window)) { setDisplay(value); return; }
+    if (!canObserve) return;
     let frame = 0;
     let started: number | null = null;
     const tick = (time: number) => {
@@ -21,6 +22,6 @@ export default function AnimatedCount({ value }: { value: number }) {
     }, { threshold: 0 });
     if (ref.current) observer.observe(ref.current);
     return () => { observer.disconnect(); cancelAnimationFrame(frame); };
-  }, [value]);
-  return <span ref={ref} aria-label={String(value)} style={{ font: 'inherit', color: 'inherit' }}><span aria-hidden="true" style={{ font: 'inherit', color: 'inherit' }}>{display}</span></span>;
+  }, [value, canObserve]);
+  return <span ref={ref} aria-label={String(value)} style={{ font: 'inherit', color: 'inherit' }}><span aria-hidden="true" style={{ font: 'inherit', color: 'inherit' }}>{canObserve ? display : value}</span></span>;
 }

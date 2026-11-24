@@ -1,7 +1,7 @@
 import { useAlertStore } from "@/store/useAlertStore";
 
 export default function GlobalAlertModal() {
-  const { isOpen, mode, message, closeAlert, onConfirm } = useAlertStore();
+  const { isOpen, mode, message, title, wide, closeAlert, onConfirm } = useAlertStore();
 
   if (!isOpen) return null;
 
@@ -12,9 +12,9 @@ export default function GlobalAlertModal() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
-      <div className="bg-white rounded-[28px] p-6 w-[320px] flex flex-col shadow-xl animate-in zoom-in-95 duration-200">
+      <div className={`bg-white rounded-[28px] p-6 w-[calc(100%_-_32px)] ${wide ? 'max-w-[440px]' : 'max-w-[320px]'} flex flex-col shadow-xl animate-in zoom-in-95 duration-200`}>
         <h2 className="text-[20px] font-bold text-[#111111] mb-2 tracking-tight">
-          알림
+          {title}
         </h2>
         <p className="text-[#767676] text-[15px] leading-relaxed mb-8 tracking-tight whitespace-pre-wrap">
           {message}

@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import type usePTPage from "@/hooks/usePTPage";
 import usePTRecorder from "@/hooks/usePTRecorder";
 import { getPTPresentationDraft, PT_TEXT_MAX_LENGTH, releasePTPresentationDraft, setPTTextMode } from "@/lib/ptPresentation";
 import type { PTPresentationRequest, PTSession } from "@/types/pt";
+import { resolvePTTaskSettings } from "@/lib/ptTaskSettings";
 
 export default function usePTPresentation(session: PTSession, flow: ReturnType<typeof usePTPage>, confirmingText: boolean) {
-  const draft = useRef(getPTPresentationDraft(session.sessionId)).current;
-  const [mode, setMode] = useState(draft.mode);
-  const [text, setText] = useState(draft.text);
-  const [pending, setPending] = useState<PTPresentationRequest | null>(draft.pending);
+  const [mode, setMode] = useState(() => getPTPresentationDraft(session.sessionId).mode);
+  const [text, setText] = useState(() => getPTPresentationDraft(session.sessionId).text);
+  const [pendingDraft, setPending] = useState<PTPresentationRequest | null>(() => getPTPresentationDraft(session.sessionId).pending);
+  const presentationResolved = !!session.presentation || ["CANCELLED", "COMPLETED"].includes(session.phase);
+  const pending = presentationResolved ? null : pendingDraft;
   const [preparing, setPreparing] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [emptyWarning, setEmptyWarning] = useState(false);
@@ -16,35 +18,34 @@ export default function usePTPresentation(session: PTSession, flow: ReturnType<t
   const working = useRef(false);
   const generation = useRef(0);
   const timedOut = useRef(false);
-  const submitRef = useRef<() => Promise<void>>(async () => undefined);
+  const invalidateSubmission = useCallback(() => {
+    generation.current++;
+    working.current = false;
+  }, []);
   const presenting = session.phase === "PRESENTING" && session.status === "IN_PROGRESS";
   const localDeadline = flow.receivedAt + Date.parse(session.presentationDeadline ?? "") - Date.parse(session.serverTime);
-  const deadlineRef = useRef(localDeadline);
-  deadlineRef.current = localDeadline;
   const submissionClosed = flow.serverNow > Date.parse(session.presentationDeadline ?? "") + 60_000;
-  const recorder = usePTRecorder(presenting && mode === "AUDIO" && !pending && !flow.isExpired, localDeadline);
+  const recorder = usePTRecorder(presenting && mode === "AUDIO" && !pending && !flow.isExpired, localDeadline, resolvePTTaskSettings(session.task.settings).presentationSeconds);
 
   useEffect(() => {
     mounted.current = true;
     working.current = false;
-    setPreparing(false);
     return () => {
       mounted.current = false;
-      generation.current++;
-      working.current = false;
+      invalidateSubmission();
       timedOut.current = false;
     };
-  }, []);
+  }, [invalidateSubmission]);
 
   useEffect(() => {
-    if (session.presentation || ["CANCELLED", "COMPLETED"].includes(session.phase)) {
+    if (presentationResolved) {
       releasePTPresentationDraft(session.sessionId);
-      setPending(null);
     }
-  }, [session.sessionId, session.presentation, session.phase]);
+  }, [session.sessionId, presentationResolved]);
 
   const changeText = (value: string) => {
     if (pending || preparing || flow.busy || submissionClosed) return;
+    const draft = getPTPresentationDraft(session.sessionId);
     draft.text = value.slice(0, PT_TEXT_MAX_LENGTH);
     setText(draft.text);
     setLocalError(null);
@@ -59,8 +60,9 @@ export default function usePTPresentation(session: PTSession, flow: ReturnType<t
 
   const submit = async () => {
     if (working.current || flow.busy || flow.exitOpen || confirmingText || !presenting || flow.isExpired) return;
+    const draft = getPTPresentationDraft(session.sessionId);
     const previous = draft.pending;
-    if (!previous && performance.now() > deadlineRef.current + 60_000) {
+    if (!previous && performance.now() > localDeadline + 60_000) {
       setLocalError("발표 제출 시간이 지났어요. 면접을 취소하고 새로 시작해 주세요.");
       return;
     }
@@ -104,19 +106,18 @@ export default function usePTPresentation(session: PTSession, flow: ReturnType<t
       }
     }
   };
-  submitRef.current = submit;
+  const submitOnTimeout = useEffectEvent(() => { void submit(); });
 
   useEffect(() => {
     if (!presenting || flow.remainingSeconds !== 0 || flow.busy || flow.exitOpen || confirmingText || timedOut.current || pending || flow.isExpired) return;
     timedOut.current = true;
-    void submitRef.current();
+    submitOnTimeout();
   }, [presenting, flow.remainingSeconds, flow.busy, flow.exitOpen, flow.isExpired, pending, confirmingText]);
 
-  const abortForCancel = () => {
-    generation.current++;
-    working.current = false;
+  const abortForCancel = useCallback(() => {
+    invalidateSubmission();
     setPreparing(false);
-  };
+  }, [invalidateSubmission]);
 
   return {
     mode, text, changeText, pending, preparing, localError, emptyWarning,

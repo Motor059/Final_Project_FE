@@ -31,8 +31,9 @@ export function getPTInputMode(sessionId: number): "AUDIO" | "TEXT" {
   if (draft?.sessionId === sessionId && draft.owner === getAuthSessionIdentity() && draft.version === getAuthVersion()) return draft.mode;
   try {
     const saved = JSON.parse(sessionStorage.getItem(INPUT_MODE_KEY) ?? "null");
-    if (saved?.owner === getAuthSessionIdentity() && saved?.sessionId === sessionId && saved?.mode === "TEXT") return "TEXT";
+    if (saved?.owner === getAuthSessionIdentity() && saved?.sessionId === sessionId && (saved?.mode === "TEXT" || saved?.mode === "AUDIO")) return saved.mode;
   } catch {
+    // Storage may be disabled; use the default audio preference in this tab.
   }
   return "AUDIO";
 }
@@ -46,13 +47,18 @@ export function getPTPresentationDraft(sessionId: number): Draft {
   return draft;
 }
 
-export function setPTTextMode(sessionId: number) {
+export function setPTInputMode(sessionId: number, mode: "AUDIO" | "TEXT") {
   const current = getPTPresentationDraft(sessionId);
-  current.mode = "TEXT";
+  current.mode = mode;
   try {
-    sessionStorage.setItem(INPUT_MODE_KEY, JSON.stringify({ owner: current.owner, sessionId, mode: "TEXT" }));
+    sessionStorage.setItem(INPUT_MODE_KEY, JSON.stringify({ owner: current.owner, sessionId, mode }));
   } catch {
+    // Keep the in-memory preference when session storage is unavailable.
   }
+}
+
+export function setPTTextMode(sessionId: number) {
+  setPTInputMode(sessionId, "TEXT");
 }
 
 export function releasePTPresentationDraft(sessionId: number) {

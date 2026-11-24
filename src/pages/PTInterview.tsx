@@ -7,6 +7,7 @@ import PageLoading from "@/components/common/PageLoading";
 import PTAudioWaveform from "@/components/presentation/PTAudioWaveform";
 import PTExitDialog from "@/components/presentation/PTExitDialog";
 import PTQuestionOrb from "@/components/presentation/PTQuestionOrb";
+import InterviewQuestionText from "@/components/common/InterviewQuestionText";
 import PTSessionUnavailable from "@/components/presentation/PTSessionUnavailable";
 import { ensureReportAnalysis } from "@/lib/reportAnalysis";
 import { reportPath } from "@/lib/reportNavigation";
@@ -19,13 +20,14 @@ import { releasePTAnswerDraft } from "@/lib/ptAnswerDraft";
 import { formatPTTime, ptTrackLabels } from "@/lib/ptSession";
 import { PT_TEXT_MAX_LENGTH } from "@/lib/ptPresentation";
 import type { PTQuestion } from "@/types/pt";
+import { ptSessionTrackState } from "@/lib/ptTaskSettings";
 
 export default function PTInterview() {
   const flow = usePTPage("QUESTIONS");
   const questions = usePTQuestions(flow);
   const navigate = useNavigate();
   const [referenceTab, setReferenceTab] = useState<PTReferenceTab | null>(null);
-  const stopAnswer = useRef<(() => void) | null>(null);
+  const stopAnswerRef = useRef<(() => void) | null>(null);
   const { session, sessionId, isLoading, isExpired, error, busy, actionError, questionError, exitOpen } = flow;
   const progress = flow.questions;
   const question = progress?.question;
@@ -41,7 +43,7 @@ export default function PTInterview() {
     if (sessionId && confirmedCount !== undefined) releasePTAnswerDraft(sessionId, confirmedCount);
   }, [sessionId, confirmedCount]);
   const confirmExit = useCallback(async () => {
-    stopAnswer.current?.();
+    stopAnswerRef.current?.();
     if (await flow.confirmExit() && sessionId) releasePTAnswerDraft(sessionId);
   }, [flow, sessionId]);
 
@@ -53,9 +55,10 @@ export default function PTInterview() {
   const followUpNumber = question?.followUpNumber ?? (displayedOrdinal - 1) % 3;
   const displayError = questions.waitError || questionError || actionError || error;
   const waiting = progress?.processing || busy === "NEXT";
+  const { track } = ptSessionTrackState(session);
 
   return <>
-    <Header hideBackButton focusLabel={flow.active ? "PT 면접 진행 중" : undefined} onExit={flow.requestExit} exitDisabled={flow.cancelBlocked} />
+    <Header focusLabel={flow.active ? "PT 면접 진행 중" : undefined} onExit={flow.requestExit} exitDisabled={flow.cancelBlocked} />
     <main className="pt-ref pt-ref-page pt-view">
       {!completed && !cancelled && <PTProgressHeader company={session.task.companyName} step={2}>
         <span className="pt-qprog"><b>질의응답 {mainNumber}/2</b></span>
@@ -75,12 +78,12 @@ export default function PTInterview() {
           <span className={`pt-done-mark${cancelled ? " soft" : ""}`}><Check size={30} aria-hidden="true" /></span>
           <h1 className="cs-title">{completed ? "PT 면접을 완료했어요." : "PT 면접이 취소됐어요"}</h1>
           <p className="pv-sub">{completed ? "발표와 질의응답 6개가 저장되었습니다." : "면접 설정에서 새 연습을 시작할 수 있어요."}</p>
-          <div className="pt-completion-meta"><span>{session.task.companyName}</span>{session.track && <span>{ptTrackLabels[session.track]}</span>}</div>
+          <div className="pt-completion-meta"><span>{session.task.companyName}</span>{track && <span>{ptTrackLabels[track]}</span>}</div>
           <div className="pt-completion-actions">
             {completed && <button type="button" className="btn ink" onClick={() => navigate("/report", { state: { sessionId: session.sessionId, interviewType: "PT" } })}>결과 리포트 보기</button>}
             <button type="button" className="btn ghost" onClick={() => navigate("/")}>홈으로</button>
           </div>
-        </> : question && progress?.phase === "QUESTIONING" ? <AnswerArea key={`${session.sessionId}:${question.questionId}`} question={question} sessionId={session.sessionId} flow={flow} stopAnswer={stopAnswer} onOpenReference={setReferenceTab} />
+        </> : question && progress?.phase === "QUESTIONING" ? <AnswerArea key={`${session.sessionId}:${question.questionId}`} question={question} sessionId={session.sessionId} flow={flow} stopAnswerRef={stopAnswerRef} onOpenReference={setReferenceTab} />
           : !displayError && <>
             <div className="pt-orb"><PTQuestionOrb orbOnly text="" state="thinking" /></div>
             <div className="pt-state muted" role="status"><span className="sp dk" aria-hidden="true" />{waiting ? "질문과 답변을 처리하고 있어요" : "면접관이 다음 질문을 준비하고 있어요"}</div>
@@ -92,8 +95,8 @@ export default function PTInterview() {
   </>;
 }
 
-function AnswerArea({ question, sessionId, flow, stopAnswer, onOpenReference }: {
-  question: PTQuestion; sessionId: number; flow: ReturnType<typeof usePTPage>; stopAnswer: RefObject<(() => void) | null>; onOpenReference: (tab: PTReferenceTab) => void;
+function AnswerArea({ question, sessionId, flow, stopAnswerRef, onOpenReference }: {
+  question: PTQuestion; sessionId: number; flow: ReturnType<typeof usePTPage>; stopAnswerRef: RefObject<(() => void) | null>; onOpenReference: (tab: PTReferenceTab) => void;
 }) {
   const [confirmingText, setConfirmingText] = useState(false);
   const presentation = usePTQuestionPresentation(question, flow.exitOpen || !!flow.questions?.processing);
@@ -105,9 +108,9 @@ function AnswerArea({ question, sessionId, flow, stopAnswer, onOpenReference }: 
   const micFailed = answer.mode === "AUDIO" && answer.recorder.status === "ERROR" && !answer.pending;
   useEffect(() => {
     const stop = answer.abortForCancel;
-    stopAnswer.current = stop;
-    return () => { if (stopAnswer.current === stop) stopAnswer.current = null; };
-  }, [answer.abortForCancel, stopAnswer]);
+    stopAnswerRef.current = stop;
+    return () => { if (stopAnswerRef.current === stop) stopAnswerRef.current = null; };
+  }, [answer.abortForCancel, stopAnswerRef]);
 
   return <div className={`pt-answer-area${presentation.ready && answer.mode === "TEXT" ? " typing" : ""}`}>
     <div className="pt-orb"><PTQuestionOrb orbOnly text="" state={submitting || processing ? "thinking" : !presentation.ready ? "asking" : recording ? "recording" : "idle"} /></div>
@@ -119,7 +122,7 @@ function AnswerArea({ question, sessionId, flow, stopAnswer, onOpenReference }: 
               : answer.pending ? "제출할 답변을 보관하고 있어요"
                 : answer.recorder.status === "REQUESTING" ? <><span className="sp dk" aria-hidden="true" />마이크를 준비하고 있어요</> : "마이크를 확인해 주세요"}
     </div>
-    <h1 className={`pt-prompt pt-q${processing ? " dim" : ""}`} aria-busy={!presentation.ready}>{presentation.text}</h1>
+    <InterviewQuestionText heading="h1" text={presentation.text} dimmed={submitting || processing} busy={!presentation.ready} label={question.content} />
     {presentation.speechError && <p role="status" className="hint">{presentation.speechError}</p>}
     {answer.error && <div role="alert" className="pt-note"><AlertCircle size={20} aria-hidden="true" /><div>{answer.error}</div></div>}
     {presentation.ready && micFailed && <div className="pt-note info" role="alert"><Mic size={20} aria-hidden="true" /><div>
@@ -135,13 +138,14 @@ function AnswerArea({ question, sessionId, flow, stopAnswer, onOpenReference }: 
         </button>
         <span className="hint">{answer.pending ? "같은 내용으로 다시 제출할 수 있어요. 새로고침하면 보관 중인 녹음은 사라져요." : answer.mode === "TEXT" && !answer.text.trim() ? "내용을 입력하면 제출할 수 있어요" : ""}</span>
         {answer.mode === "AUDIO" && <button type="button" className="txtbtn" disabled={locked || flow.exitOpen} onClick={() => setConfirmingText(true)}>텍스트로 답변하기</button>}
+        {answer.mode === "TEXT" && !answer.textModeLocked && <button type="button" className="txtbtn" disabled={locked || flow.exitOpen} onClick={answer.switchToAudio}>음성으로 답변하기</button>}
         <button type="button" className="txtbtn" onClick={() => onOpenReference("task")}>과제·내 발표 다시 보기</button>
       </div>
     </>}
     <Dialog open={(confirmingText || answer.emptyWarning) && !flow.exitOpen} onOpenChange={(open) => { if (!open) { setConfirmingText(false); answer.closeEmptyWarning(); } }}>
       <DialogContent className="pt-ref pt-modal-host" overlayClassName="pt-reference-overlay" showCloseButton={false}><div className="sheet">
         <DialogTitle render={<h3 />}>{answer.emptyWarning ? "답변 내용을 입력해 주세요" : "텍스트로 답변할까요?"}</DialogTitle>
-        <DialogDescription>{answer.emptyWarning ? "공백만 있는 답변은 제출할 수 없어요." : "녹음 중인 음성은 제출되지 않아요. 전환 후에는 남은 PT 면접을 텍스트로 진행하며 음성으로 돌아갈 수 없어요."}</DialogDescription>
+        <DialogDescription>{answer.emptyWarning ? "공백만 있는 답변은 제출할 수 없어요." : "녹음 중인 음성은 제출되지 않아요. 현재 질문에서는 음성으로 돌아갈 수 없으며, 다음 질문에서는 다시 음성 답변을 선택할 수 있어요."}</DialogDescription>
         <div className="acts">
           <button type="button" className="btn ink" onClick={() => { if (answer.emptyWarning) answer.closeEmptyWarning(); else answer.switchToText(); setConfirmingText(false); }}>{answer.emptyWarning ? "확인" : "텍스트로 전환"}</button>
           {!answer.emptyWarning && <button type="button" className="btn ghost" onClick={() => setConfirmingText(false)}>계속 녹음하기</button>}

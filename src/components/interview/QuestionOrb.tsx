@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useInterviewStore } from "@/store/useInterviewStore";
 import { OrbEngine, type OrbState } from "@/lib/OrbEngine";
 import LoadingState, { LoadingIndicator } from "@/components/common/LoadingState";
+import InterviewQuestionText from "@/components/common/InterviewQuestionText";
 
 export default function QuestionOrb() {
   const { phase, currentQuestion, recordingAttempt, isSubmitting, questionError, answerError } = useInterviewStore();
@@ -25,7 +26,6 @@ export default function QuestionOrb() {
     const characters = Array.from(content);
     let currentIndex = 0;
     let active = true;
-    setTypedQuestion({ questionId, attempt: recordingAttempt, content, text: '' });
 
     const typingInterval = setInterval(() => {
       const state = useInterviewStore.getState();
@@ -112,9 +112,7 @@ export default function QuestionOrb() {
         {isThinkingBusy && (
           <p className="text-[#A8A29E] text-[14px] font-medium" role="status">답변을 처리하고 다음 질문을 준비하고 있어요</p>
         )}
-        <h2 className={`text-2xl sm:text-[28px] font-bold leading-relaxed break-keep transition-opacity duration-500 ${phase === "THINKING" ? "opacity-30" : "opacity-100"}`}>
-          "{displayedText}"
-        </h2>
+        <InterviewQuestionText text={displayedText} dimmed={phase === "THINKING"} />
       </div>
     </div>
     </>

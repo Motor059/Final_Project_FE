@@ -1,5 +1,17 @@
 export type PTTrack = "SECURITY" | "UI_UX" | "AI" | "DATA";
 
+export type PTTaskType = "SERVICE_IMPROVEMENT" | "JOB_PROBLEM_SOLVING";
+
+export interface PTTaskSettings {
+  taskType: PTTaskType;
+  targetJobRole: string | null;
+  trackSelectionRequired: boolean;
+  allowedTracks: PTTrack[];
+  preparationMinutes: number[];
+  presentationSeconds: number;
+  practiceNotice: string;
+}
+
 export type PTPhase =
   | "PREPARING"
   | "PRESENTING"
@@ -18,7 +30,7 @@ export type PTNextAction =
   | "NONE";
 
 export interface PTOptions {
-  companies: { companyId: number; companyName: string }[];
+  companies: { companyId: number; companyName: string; settings?: PTTaskSettings | null }[];
   tracks: { code: PTTrack; label: string }[];
   preparationMinutes: number[];
   presentationSeconds: number;
@@ -64,6 +76,7 @@ export interface PTSession extends PTProgress {
     version: number;
     companyId: number;
     companyName: string;
+    settings?: PTTaskSettings | null;
     content: PTTaskContent;
   };
   preparationMinutes: number;

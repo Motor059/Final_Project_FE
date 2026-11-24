@@ -157,7 +157,7 @@ export default function useSetup() {
         setIsError(true);
         setErrorMessage(message);
       }
-      throw new Error(message);
+      throw new Error(message, { cause: error });
     } finally {
       if (deadline !== null) clearTimeout(deadline);
       if (mountedRef.current && preparationRef.current === operation) setIsStarting(false);

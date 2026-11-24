@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/api/authApi';
 import LoadingState from '@/components/common/LoadingState';
@@ -21,7 +21,7 @@ export default function KakaoCallback() {
   const [showTerms, setShowTerms] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const processLogin = async (termsAgreed: boolean) => {
+  const processLogin = useCallback(async (termsAgreed: boolean) => {
     if (!code) return;
     const version = getAuthVersion();
     
@@ -57,13 +57,10 @@ export default function KakaoCallback() {
         setErrorMsg("카카오 인증에 실패했습니다. 다시 시도해주세요.");
       }
     }
-  };
+  }, [code, completeLogin, navigate, showAlert]);
 
   useEffect(() => {
-    if (!code) {
-      setErrorMsg('카카오 로그인이 취소되었거나 인증 정보를 받지 못했습니다.');
-      return;
-    }
+    if (!code) return;
     if (isProcessed.current) return;
     isProcessed.current = true;
 
@@ -71,11 +68,11 @@ export default function KakaoCallback() {
 
     if (isPendingTerms) {
       localStorage.removeItem('pendingTerms');
-      processLogin(true);
+      void processLogin(true);
     } else {
-      processLogin(false);
+      void processLogin(false);
     }
-  }, [code]);
+  }, [code, processLogin]);
 
   const handleAgreeAndRestart = () => {
     localStorage.setItem('pendingTerms', 'true');
@@ -87,10 +84,11 @@ export default function KakaoCallback() {
     }
   };
 
-  if (errorMsg) {
+  const displayedError = !code ? '카카오 로그인이 취소되었거나 인증 정보를 받지 못했습니다.' : errorMsg;
+  if (displayedError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFAF9]">
-        <h2 className="text-[20px] font-semibold text-[#1C1917] mb-4">{errorMsg}</h2>
+        <h2 className="text-[20px] font-semibold text-[#1C1917] mb-4">{displayedError}</h2>
         <button 
           onClick={() => { clearReportLoginReturn(); navigate('/', { replace: true }); }}
           className="px-6 py-3 bg-[#0A0A0A] text-white rounded-xl font-medium"
