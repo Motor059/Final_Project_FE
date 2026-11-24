@@ -19,9 +19,12 @@ export default function usePTRecorder(enabled: boolean, localDeadline: number, m
   const [attempt, setAttempt] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const deadline = useRef(localDeadline);
-  deadline.current = localDeadline;
   const controls = useRef<{ stop: () => Promise<PTPresentationRecording>; discard: () => void } | null>(null);
   const levelRef = useRef(0);
+
+  useEffect(() => {
+    deadline.current = localDeadline;
+  }, [localDeadline]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -83,11 +86,14 @@ export default function usePTRecorder(enabled: boolean, localDeadline: number, m
     };
     const currentControls = { stop, discard };
     controls.current = currentControls;
-    setStatus("REQUESTING");
-    setError(null);
-    setElapsedSeconds(0);
 
     const start = async () => {
+      // Let an effect cleanup cancel initialization before requesting hardware.
+      await Promise.resolve();
+      if (!active) return;
+      setStatus("REQUESTING");
+      setError(null);
+      setElapsedSeconds(0);
       try {
         if (deadline.current <= performance.now()) throw new Error("발표 시간이 끝났어요. 남은 제출 시간 안에 텍스트로 입력해 주세요.");
         if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
@@ -154,6 +160,7 @@ export default function usePTRecorder(enabled: boolean, localDeadline: number, m
           };
           draw();
         } catch {
+          // Audio visualization is optional; keep the recording running.
         }
       } catch (failure) {
         fail(microphoneMessage(failure));

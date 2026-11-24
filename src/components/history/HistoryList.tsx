@@ -1,10 +1,11 @@
 import { scoreText, scoreValue } from "@/lib/reportDisplay";
 import { LoadingIndicator } from "@/components/common/LoadingState";
 import type { AnalysisState } from "@/store/useReportAnalysisStore";
+import type { InterviewFormat } from "@/types/history";
 
 export interface InterviewHistoryItem {
-  id: number; interviewType?: "QA" | "PT"; date: string; company: string;
-  role: string; stage: string; totalScore: number | null;
+  id: number; format: InterviewFormat | null; date: string; company: string;
+  role: string; stage: string; stageCode?: string; totalScore: number | null;
   resultState: AnalysisState | "INCOMPLETE";
 }
 interface HistoryListProps { items: InterviewHistoryItem[]; onSelect: (id: number) => void; emptyMessage?: string; }
@@ -28,7 +29,7 @@ export default function HistoryList({ items, onSelect, emptyMessage }: HistoryLi
       <div className="member-history-details">
         <div className="member-history-meta">
           <span>{item.date}</span>
-          <span className={`member-type-badge${item.interviewType === "PT" ? " is-pt" : ""}`}>{item.interviewType === "PT" ? "PT 면접" : "일반면접"}</span>
+          <span className={`member-type-badge${item.format === "PT" ? " is-pt" : ""}`}>{item.format === "PT" ? "PT 면접" : item.format === "QA" ? "일반면접" : "면접"}</span>
         </div>
         <p className="member-history-company">{item.company} · {item.role}</p>
         <p className="member-history-stage">{item.stage}</p>

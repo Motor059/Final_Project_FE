@@ -15,6 +15,7 @@ import usePTPresentation from "@/hooks/usePTPresentation";
 import { PT_TEXT_MAX_LENGTH, releasePTPresentationDraft } from "@/lib/ptPresentation";
 import { ptPhaseLabels, ptTrackLabels } from "@/lib/ptSession";
 import type { PTSession } from "@/types/pt";
+import { ptSessionTrackState } from "@/lib/ptTaskSettings";
 
 export default function PTPresentation() {
   const flow = usePTPage("PRESENTATION");
@@ -33,7 +34,8 @@ function PresentationScreen({ session, flow }: { session: PTSession; flow: Retur
   const submitting = input.preparing || busy === "SUBMIT_TEXT" || busy === "SUBMIT_AUDIO";
   const remaining = presenting ? remainingSeconds ?? 0 : 0;
   const content = session.task.content;
-  const trackLabel = session.track ? ptTrackLabels[session.track] : "";
+  const trackState = ptSessionTrackState(session);
+  const trackLabel = trackState.track ? ptTrackLabels[trackState.track] : "";
   const saved = !!session.presentation;
   const displayError = input.localError || error || ((!saved || failedAction?.type === "CANCEL") ? actionError : null);
   const preparingQuestions = !presenting && active && !displayError;
@@ -46,7 +48,7 @@ function PresentationScreen({ session, flow }: { session: PTSession; flow: Retur
   };
 
   return <>
-    <Header hideBackButton focusLabel={active ? "PT 면접 진행 중" : undefined} onExit={flow.requestExit} exitDisabled={flow.cancelBlocked} />
+    <Header focusLabel={active ? "PT 면접 진행 중" : undefined} onExit={flow.requestExit} exitDisabled={flow.cancelBlocked} />
     <main className={`pt-ref pt-ref-page pt-view${input.mode === "TEXT" ? " typing" : ""}`}>
       <PTProgressHeader company={session.task.companyName} step={1} remaining={presenting ? remaining : undefined} recording={input.mode === "AUDIO" && input.recorder.status === "RECORDING" && !submitting} />
       <section className="wrap pt-stage">
@@ -61,7 +63,7 @@ function PresentationScreen({ session, flow }: { session: PTSession; flow: Retur
           <div className={`pt-state${input.recorder.status === "ERROR" ? " muted" : ""}`} role="status">
             {input.pending ? <><span className="sp dk" aria-hidden="true" />제출한 발표를 보관하고 있어요</> : input.mode === "TEXT" ? <><Type size={16} aria-hidden="true" />텍스트로 발표 중</> : input.recorder.status === "RECORDING" ? <><span className="dot" aria-hidden="true" />녹음 중</> : input.recorder.status === "REQUESTING" ? <><span className="sp dk" aria-hidden="true" />마이크를 확인하고 있어요</> : "마이크를 확인해 주세요"}
           </div>
-          <h1 className="pt-prompt">선택한 개선안을 설명해주세요.</h1>
+          <h1 className="pt-prompt">{trackState.settings.taskType === "SERVICE_IMPROVEMENT" ? "선택한 개선안을 설명해 주세요." : "과제에 대한 해결 방안을 설명해 주세요."}</h1>
           {input.mode === "TEXT" ? <textarea id="pt-presentation-text" className="inp pt-text" rows={7} aria-label="발표 내용" value={input.text} maxLength={PT_TEXT_MAX_LENGTH} onChange={(event) => input.changeText(event.target.value)} disabled={controlsLocked || input.submissionClosed} placeholder="발표 내용을 입력하세요. 남은 시간 안에 제출해 주세요." />
             : <PTAudioWaveform active={input.recorder.status === "RECORDING"} levelRef={input.recorder.levelRef} />}
           {input.recorder.error && input.mode === "AUDIO" && !input.pending && <div className="pt-note"><AlertCircle size={18} aria-hidden="true" /><div><b>마이크를 사용할 수 없어요</b>{input.recorder.error}<div className="acts"><button type="button" className="btn ghost sm" disabled={controlsLocked || remaining <= 0} onClick={input.recorder.retry}>마이크 다시 확인</button><button type="button" className="btn ink sm" disabled={controlsLocked || input.submissionClosed || exitOpen} onClick={() => setConfirmingText(true)}>텍스트로 발표하기</button></div></div></div>}
@@ -86,7 +88,7 @@ function PresentationScreen({ session, flow }: { session: PTSession; flow: Retur
     <Dialog open={(confirmingText || input.emptyWarning) && !exitOpen} onOpenChange={(open) => { if (!open) { setConfirmingText(false); input.closeEmptyWarning(); } }}>
       <DialogContent className="pt-ref pt-modal-host" overlayClassName="pt-reference-overlay" showCloseButton={false}><div className="sheet">
         <DialogTitle render={<h3 />}>{input.emptyWarning ? "발표 내용을 입력해 주세요" : "텍스트로 바꿀까요?"}</DialogTitle>
-        <DialogDescription>{input.emptyWarning ? "공백만 있는 발표는 제출할 수 없어요. 남은 제출 시간 안에 내용을 입력해 주세요." : "녹음을 멈추고 텍스트로 전환해요. 지금까지 녹음한 음성은 제출되지 않으며, 남은 PT 면접은 텍스트로 진행해요. 남은 발표 시간은 그대로 흘러가요."}</DialogDescription>
+        <DialogDescription>{input.emptyWarning ? "공백만 있는 발표는 제출할 수 없어요. 남은 제출 시간 안에 내용을 입력해 주세요." : "녹음을 멈추고 발표를 텍스트로 진행해요. 지금까지 녹음한 음성은 제출되지 않으며, 남은 발표 시간은 유지돼요. 발표 뒤 질문에서는 다시 음성 답변을 선택할 수 있어요."}</DialogDescription>
         <div className="acts"><button type="button" className="btn ink" onClick={() => { if (input.emptyWarning) input.closeEmptyWarning(); else input.switchToText(); setConfirmingText(false); }}>{input.emptyWarning ? "확인" : "텍스트로 바꾸기"}</button>{!input.emptyWarning && <button type="button" className="btn ghost" onClick={() => setConfirmingText(false)}>계속 녹음하기</button>}</div>
       </div></DialogContent>
     </Dialog>

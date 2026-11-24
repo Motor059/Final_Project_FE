@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, UserRound } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { useInterviewStore } from "@/store/useInterviewStore";
@@ -16,9 +16,8 @@ const navigation = [
   { path: "/history", label: "히스토리" },
 ];
 
-export default function Header({ reportForLogin, hideBackButton: hideBack = false, focusLabel, onExit, exitDisabled = false }: { reportForLogin?: ReportResponseData; hideBackButton?: boolean; focusLabel?: string; onExit?: () => void; exitDisabled?: boolean } = {}) {
+export default function Header({ reportForLogin, focusLabel, onExit, exitDisabled = false }: { reportForLogin?: ReportResponseData; focusLabel?: string; onExit?: () => void; exitDisabled?: boolean } = {}) {
   const location = useLocation();
-  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(() => window.scrollY > 8);
 
   useEffect(() => {
@@ -43,7 +42,6 @@ export default function Header({ reportForLogin, hideBackButton: hideBack = fals
   const user = useAuthStore((state) => state.user);
   const fetchUserInfo = useAuthStore((state) => state.fetchUserInfo);
   const showAlert = useAlertStore((state) => state.showAlert);
-  const hideBackButton = hideBack || location.pathname === "/" || location.pathname === "/interview";
   const profileName = user?.nickname?.trim() ?? "";
   const profileInitial = Array.from(profileName)[0];
 
@@ -73,7 +71,6 @@ export default function Header({ reportForLogin, hideBackButton: hideBack = fals
     : location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   return (
-    <>
       <header className={`devoir-header ${isLoggedIn ? "has-member-navigation" : ""}${scrolled ? " is-scrolled" : ""}`}>
         <Link to="/" className="devoir-header-logo" aria-label="Devoir 홈" onClick={(event) => handleNavigation(event, "/")}>
           <img src="/devoir-logo.svg" alt="devoir" width="113" height="24" />
@@ -89,11 +86,5 @@ export default function Header({ reportForLogin, hideBackButton: hideBack = fals
           </div>
         ) : <Button type="button" className="rounded-md text-[14px] font-semibold" onClick={handleLogin}>로그인</Button>}
       </header>
-      {!hideBackButton && (
-        <div className="fixed left-0 top-[68px] z-40 px-[20px] pt-[20px] md:px-[40px]">
-          <button type="button" onClick={() => navigate(-1)} className="-ml-[4px] cursor-pointer rounded-lg p-[4px] text-[#0A0A0A] hover:bg-gray-200" aria-label="뒤로 가기"><ChevronLeft className="h-7 w-7" strokeWidth={2.5} /></button>
-        </div>
-      )}
-    </>
   );
 }

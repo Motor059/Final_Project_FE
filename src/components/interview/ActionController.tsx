@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function ActionController() {
   const { 
-    phase, inputMode, setInputMode, sessionId, currentQuestion, recordingAttempt, 
+    phase, inputMode, textModeLocked, setInputMode, sessionId, currentQuestion, recordingAttempt,
     answerText, setAnswerText, timeLeft, 
     submitAnswerAndNext, isSubmitting, questionError, retryQuestion, isSessionUnavailable, resetInterview,
     skipCurrentQuestion, isSkipping, skipError, isPaused, audioStatus, audioError, pendingAnswer, answerError, restartAnswer,
@@ -47,9 +47,9 @@ export default function ActionController() {
       questionId: current.currentQuestion.questionId,
       recordingAttempt: current.recordingAttempt,
     };
-    showConfirm('텍스트 답변으로 전환할까요?\n이번 면접의 남은 질문도 텍스트로 답변하게 되며, 음성 답변으로 돌아갈 수 없어요.', () => {
+    showConfirm('현재 질문에서는 음성으로 돌아갈 수 없어요.\n다음 질문에서는 음성 답변을 선택할 수 있어요.', () => {
       confirmedTextSwitch.current = request;
-    });
+    }, { title: '텍스트 답변으로 전환할까요?', wide: true });
   };
 
   const formatTime = (seconds: number) => {
@@ -154,7 +154,7 @@ export default function ActionController() {
       </div>
 
       {/* 모드 전환 및 건너뛰기 링크 */}
-      <div className="flex items-center gap-6 text-[13px] text-[#A8A29E] pt-2">
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[13px] text-[#A8A29E] pt-2">
         {inputMode === "AUDIO" ? (
           <button
             className="underline underline-offset-4 hover:text-black transition-colors disabled:opacity-50"
@@ -164,7 +164,10 @@ export default function ActionController() {
             텍스트로 입력하기
           </button>
         ) : (
-          <span>텍스트로 답변 중</span>
+          textModeLocked ? <span>텍스트로 답변 중</span> : <button
+            className="underline underline-offset-4 hover:text-black transition-colors disabled:opacity-50"
+            onClick={() => setInputMode('AUDIO')} disabled={isSubmitting || isPaused || timeLeft === 0}
+          >음성으로 답변하기</button>
         )}
         <button 
           className="hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

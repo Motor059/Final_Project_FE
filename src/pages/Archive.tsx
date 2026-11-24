@@ -80,7 +80,7 @@ function ArchiveWorkspace() {
         <>
           <section className="hero"><div className="hero-bg"><div className="hero-glow" /></div><div className="wrap archive-hero-content">
             <h1>{"실제 면접에서 받은 질문".split(" ").map((word, index) => <span key={word}><span className="dv-w" style={{ animationDelay: `${0.05 + index * .08}s` }}>{word}</span>{" "}</span>)}</h1>
-            <p className="dv-up dv-d1">지원자들이 직접 겪은 질문을 회사별로 모았어요. 마음에 드는 질문은 하트로 저장해 두고 면접 전에 다시 보세요.</p>
+            <p className="dv-up dv-d1">지원자들이 직접 겪은 질문을 회사별로 모았어요.<br />마음에 드는 질문은 하트로 저장해 두고 면접 전에 다시 보세요.</p>
             <div className="stat">질문 <b>{model.records.reduce((sum, record) => sum + record.questions.length, 0)}</b>개, 회사 <b>{Object.keys(counts).length}</b>곳</div>
             <CompanySearch companies={model.companies} query={query} onQueryChange={setQuery} counts={counts} onSelect={(company) => { changeFilter("companyId", company.id); setQuery(""); setMode("arc"); }} />
             {selectedCompany && <div><span className="picked">{selectedCompany.display}{selectedCompany.name !== selectedCompany.display && <span className="picked-legal">{selectedCompany.name}</span>}<button type="button" aria-label="회사 선택 해제" onClick={() => changeFilter("companyId", null)}><X size={13} aria-hidden="true" /></button></span></div>}

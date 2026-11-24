@@ -47,10 +47,6 @@ export function restoredInterviewSeconds(sessionId: number, questionId: number) 
   return timer ? Math.ceil(remainingInterviewMs(timer) / 1000) : null;
 }
 
-export function resetInterviewTimer(sessionId: number, questionId: number) {
-  saveInterviewTimer(newInterviewTimer(sessionId, questionId));
-}
-
 export function clearInterviewTimer(sessionId: number, questionId: number) {
   if (!loadInterviewTimer(sessionId, questionId)) return;
   try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* Best-effort cleanup. */ }

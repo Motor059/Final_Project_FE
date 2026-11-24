@@ -10,7 +10,9 @@ export default function usePTPage(page: "PREPARATION" | "PRESENTATION" | "QUESTI
   const flow = usePTSession(sessionId);
   const { session, receivedAt, busy, cancelSession } = flow;
   const [now, setNow] = useState(() => performance.now());
-  const [explicitExit, setExplicitExit] = useState(false);
+  const exitScope = `${sessionId}:${location.key}`;
+  const [exitRequest, setExitRequest] = useState<string | null>(null);
+  const explicitExit = exitRequest === exitScope;
   const allowExit = useRef(false);
   const cancelling = useRef(false);
   const active = !!session && session.status === "IN_PROGRESS" && !["COMPLETED", "CANCELLED"].includes(session.phase);
@@ -42,11 +44,9 @@ export default function usePTPage(page: "PREPARATION" | "PRESENTATION" | "QUESTI
   useEffect(() => {
     allowExit.current = false;
     cancelling.current = false;
-    setExplicitExit(false);
   }, [sessionId]);
 
   useEffect(() => {
-    setNow(performance.now());
     const timer = window.setInterval(() => setNow(performance.now()), 1000);
     return () => window.clearInterval(timer);
   }, [receivedAt]);
@@ -71,7 +71,7 @@ export default function usePTPage(page: "PREPARATION" | "PRESENTATION" | "QUESTI
 
   const closeExit = () => {
     if (cancelBlocked || cancelling.current) return;
-    setExplicitExit(false);
+    setExitRequest(null);
     if (blocker.state === "blocked") blocker.reset();
   };
   const confirmExit = async () => {
@@ -81,7 +81,7 @@ export default function usePTPage(page: "PREPARATION" | "PRESENTATION" | "QUESTI
       if (!await cancelSession()) return false;
       if (sessionId) clearPTSessionReference(sessionId);
       allowExit.current = true;
-      setExplicitExit(false);
+      setExitRequest(null);
       if (blocker.state === "blocked") blocker.proceed();
       else navigate("/setup", { replace: true });
       return true;
@@ -92,6 +92,6 @@ export default function usePTPage(page: "PREPARATION" | "PRESENTATION" | "QUESTI
 
   return {
     ...flow, sessionId, active, isExpired, remainingSeconds, serverNow, cancelBlocked, exitOpen,
-    requestExit: () => setExplicitExit(true), closeExit, confirmExit,
+    requestExit: () => setExitRequest(exitScope), closeExit, confirmExit,
   };
 }

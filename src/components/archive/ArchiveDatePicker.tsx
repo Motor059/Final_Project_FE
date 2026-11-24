@@ -116,7 +116,7 @@ export default function ArchiveDatePicker({ id, value, onChange, describedBy }: 
       <CalendarDays size={18} aria-hidden="true" />
     </Popover.Trigger>
     <Popover.Portal>
-      <Popover.Positioner className="archive-date-positioner" side="bottom" align="start" sideOffset={10} collisionPadding={16} collisionAvoidance={{ side: "none", align: "none", fallbackAxisSide: "none" }} positionMethod="fixed">
+      <Popover.Positioner className="archive-date-positioner" side="bottom" align="start" sideOffset={10} collisionPadding={16} collisionAvoidance={{ side: "none", align: "shift", fallbackAxisSide: "none" }} positionMethod="fixed">
         <Popover.Popup ref={popup} className="archive-date-popup" initialFocus={() => popup.current?.querySelector<HTMLButtonElement>('[data-calendar-focus="true"]') ?? true}>
           <Popover.Title className="sr-only">면접 날짜 선택</Popover.Title>
           <Popover.Description className="sr-only">연도와 월을 이동하고 날짜를 고른 뒤 선택 버튼을 눌러 주세요. 오늘 이후 날짜는 선택할 수 없어요.</Popover.Description>

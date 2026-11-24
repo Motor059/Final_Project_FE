@@ -232,10 +232,13 @@
 .archive-page .archive-form-heading{position:relative;display:flex;flex-direction:column;gap:14px}
 .archive-page .archive-form-heading>.btn{align-self:flex-start}
 .archive-page .archive-form-heading h1{margin:10px 0 0}
+.archive-page .archive-form-heading>p{width:100%;max-width:none}
+.archive-page .archive-company-hint{margin:0;padding-inline:22px}
 .archive-page .archive-form-body{padding:12px 0 24px}
 .archive-page .form .search{max-width:none}
 .archive-page .form .search input{height:52px;box-shadow:none}
 .archive-page .archive-stage-period{gap:18px}
+.archive-page .archive-stage-period>.field{min-width:0}
 .archive-page .archive-optional{display:flex;flex-direction:column;gap:22px;padding:24px}
 .archive-page .archive-optional .fl{font-size:15px}
 .archive-page .opt-card.centered{text-align:center}
@@ -265,7 +268,7 @@
  .archive-page .arcq .t{font-size:15.5px}
  .archive-page .arcq .icbtn{margin-right:-8px;padding:0 7px;font-size:12px}
  .archive-page .qmeta{gap:6px}
- .archive-page .archive-stage-period{grid-template-columns:1fr}
+ .archive-page .opts.c2.archive-stage-period{grid-template-columns:1fr}
  .archive-page .inp,.archive-page textarea.inp{font-size:16px}
  .archive-page .ac button{flex-wrap:wrap;gap:4px}
  .archive-page .ac .lg{font-size:11.5px}
@@ -277,3 +280,6 @@
 .archive-page .archive-record-missing{margin-top:18px;font-size:13px;line-height:1.7;color:var(--muted)}
 .archive-page .arccard{scroll-margin-top:132px}
 .archive-page .arccard.is-highlighted{border-color:#B6A6D4;box-shadow:0 0 0 2px #F3EEFA}
+
+.archive-page .archive-optional-group{display:flex;flex-direction:column;gap:12px}
+.archive-page .archive-submission-notice{margin:0;color:#78716C;font-size:13px;line-height:1.7;word-break:keep-all}

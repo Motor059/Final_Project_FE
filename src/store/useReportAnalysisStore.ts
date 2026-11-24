@@ -32,7 +32,11 @@ const MAX_AGE = 24 * 60 * 60 * 1000;
 function persist(owner: string | null, jobs: AnalysisStore['jobs']) {
   try {
     if (!owner) { sessionStorage.removeItem(STORAGE_KEY); return; }
-    const entries = Object.values(jobs).map(({ report: _report, error: _error, ...job }) => job);
+    const entries = Object.values(jobs).map((job) => ({
+      sessionId: job.sessionId, format: job.format, state: job.state,
+      completedCards: job.completedCards, totalCards: job.totalCards,
+      createIfMissing: job.createIfMissing, startedAt: job.startedAt, notified: job.notified,
+    }));
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ owner, jobs: entries }));
   } catch { /* 저장이 제한된 브라우저에서도 현재 탭의 분석은 계속한다. */ }
 }

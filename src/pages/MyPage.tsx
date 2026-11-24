@@ -150,7 +150,7 @@ export default function MyPage() {
 
   return (
     <div className="member-page">
-      <Header hideBackButton />
+      <Header />
 
       {isWithdrawing && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">

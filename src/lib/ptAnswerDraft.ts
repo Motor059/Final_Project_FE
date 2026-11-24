@@ -7,6 +7,7 @@ interface PTAnswerDraft {
   sessionId: number;
   question: PTQuestion;
   text: string;
+  textModeLocked: boolean;
   pending: PTAnswerRequest | null;
 }
 let draft: PTAnswerDraft | null = null;
@@ -15,7 +16,7 @@ export function getPTAnswerDraft(sessionId: number, question: PTQuestion) {
   const owner = getAuthSessionIdentity();
   const version = getAuthVersion();
   if (!draft || draft.owner !== owner || draft.version !== version || draft.sessionId !== sessionId || draft.question.questionId !== question.questionId) {
-    draft = { owner, version, sessionId, question, text: "", pending: null };
+    draft = { owner, version, sessionId, question, text: "", textModeLocked: false, pending: null };
   }
   return draft;
 }

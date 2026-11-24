@@ -50,9 +50,13 @@ export default function ReportAnalysisManager() {
   const ready = notifications.map((id) => jobs[id]).filter((job) => job && job.sessionId !== currentId).slice(0, 3);
   const pending = Object.values(jobs).filter((job) => job.sessionId !== currentId && job.state !== 'COMPLETED')
     .sort((a, b) => b.startedAt - a.startedAt);
-  if (!ready.length && !pending.length) return null;
+  const focusedScreen = location.pathname === '/setup' || location.pathname === '/interview' || location.pathname.startsWith('/pt/') ||
+    (location.pathname === '/archive' && new URLSearchParams(location.search).get('view') === 'new');
+  // Analysis keeps running above; defer floating notifications while a user is
+  // answering or writing so they cannot intercept the form's action buttons.
+  if (focusedScreen || (!ready.length && !pending.length)) return null;
 
-  return <aside className="fixed bottom-5 right-4 z-[120] flex w-[calc(100%-32px)] max-w-[330px] flex-col gap-3 sm:right-6" aria-label="면접 분석 알림">
+  return <aside className="fixed bottom-5 right-4 z-[50] flex w-[calc(100%-32px)] max-w-[330px] flex-col gap-3 sm:right-6" aria-label="면접 분석 알림">
     {ready.map((job) => <div key={job.sessionId} className="relative rounded-2xl border border-[#E7E5E4] bg-white p-5 pr-10 shadow-[0_8px_35px_rgba(0,0,0,0.12)]">
       <p role="status" className="flex items-center gap-2 text-[14px] font-semibold text-[#1C1917]"><Check size={17} aria-hidden="true" />{job.format === 'PT' ? 'PT 면접' : '면접'} 분석이 완료됐어요</p>
       <Link to={reportPath(job.sessionId)} state={{ isFromHistory: true, interviewType: job.format }} className="mt-2 inline-block text-[13px] font-medium text-[#57534E] underline underline-offset-4">리포트 보기 →</Link>

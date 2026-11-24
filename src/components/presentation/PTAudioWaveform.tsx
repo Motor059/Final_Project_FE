@@ -4,9 +4,10 @@ export default function PTAudioWaveform({ active, levelRef }: { active: boolean;
   const bars = useRef<(HTMLElement | null)[]>([]);
   useEffect(() => {
     if (!active) return;
+    const barElements = bars.current.slice();
     let frame = 0;
     const draw = () => {
-      bars.current.forEach((bar, index) => {
+      barElements.forEach((bar, index) => {
         if (bar) bar.style.height = `${6 + Math.max(0, levelRef.current) * 36 * (1 - Math.abs(index - 4) / 6)}px`;
       });
       frame = requestAnimationFrame(draw);
@@ -14,7 +15,7 @@ export default function PTAudioWaveform({ active, levelRef }: { active: boolean;
     draw();
     return () => {
       cancelAnimationFrame(frame);
-      bars.current.forEach((bar) => { if (bar) bar.style.height = "6px"; });
+      barElements.forEach((bar) => { if (bar) bar.style.height = "6px"; });
     };
   }, [active, levelRef]);
   return <div className="iv-wave" aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} ref={(element) => { bars.current[index] = element; }} />)}</div>;

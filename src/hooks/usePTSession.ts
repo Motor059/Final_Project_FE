@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isAxiosError, isCancel } from "axios";
-import { ptApi } from "@/api/ptApi";
+import { mergePTSessionProgress, ptApi } from "@/api/ptApi";
+import { ptSessionTrackState } from "@/lib/ptTaskSettings";
 import { getAuthSessionIdentity, getAuthVersion } from "@/lib/authStorage";
 import { completePTCreation, ptErrorMessage } from "@/lib/ptSession";
 import type { PTAudioAnswerRequest, PTAudioPresentationRequest, PTProgress, PTQuestion, PTQuestionProgress, PTSession, PTTextAnswerRequest, PTTextPresentationRequest, PTTrack } from "@/types/pt";
@@ -186,6 +187,7 @@ export default function usePTSession(sessionId: number | undefined) {
         busy = null;
       }
       if (!sameAuth()) { invalidateAuth(); return false; }
+      const trackState = ptSessionTrackState(current);
       const allowed = isQuestionAction(action)
         ? action.type === "NEXT"
           ? ["IN_PROGRESS", "COMPLETED", "ANALYZING"].includes(current.status) && ["GENERATING", "QUESTIONING", "COMPLETED"].includes(current.phase) && !questions?.processing
@@ -194,8 +196,8 @@ export default function usePTSession(sessionId: number | undefined) {
         ? ["IN_PROGRESS", "CANCELLED"].includes(current.status)
         : current.status === "IN_PROGRESS" && (action.type === "SUBMIT_TEXT" || action.type === "SUBMIT_AUDIO"
           ? current.phase === "PRESENTING" || (!!current.presentation && ["GENERATING", "QUESTIONING"].includes(current.phase))
-          : action.type === "TRACK" ? current.phase === "PREPARING"
-            : ["PREPARING", "PRESENTING"].includes(current.phase) && !!current.track);
+          : action.type === "TRACK" ? current.phase === "PREPARING" && trackState.settings.trackSelectionRequired && trackState.settings.allowedTracks.includes(action.track)
+            : ["PREPARING", "PRESENTING"].includes(current.phase) && trackState.ready);
       if (!allowed) {
         setState((previous) => ({ ...previous, actionError: "현재 면접 상태에서는 이 작업을 진행할 수 없어요. 상태를 다시 확인해 주세요." }));
         return false;
@@ -229,7 +231,7 @@ export default function usePTSession(sessionId: number | undefined) {
           const progress = action.type === "SUBMIT_TEXT"
             ? await ptApi.submitTextPresentation(sessionId, action.request, controller.signal)
             : action.type === "SUBMIT_AUDIO"
-              ? await ptApi.submitAudioPresentation(sessionId, action.request, controller.signal)
+              ? await ptApi.submitAudioPresentation(sessionId, action.request, controller.signal, trackState.settings.presentationSeconds)
               : action.type === "TRACK"
                 ? await ptApi.selectTrack(sessionId, action.track, controller.signal)
                 : action.type === "START"
@@ -237,7 +239,7 @@ export default function usePTSession(sessionId: number | undefined) {
                   : await ptApi.cancelSession(sessionId, controller.signal);
           if (!active || controller.signal.aborted) return false;
           if (!sameAuth()) { invalidateAuth(); return false; }
-          updateSession({ ...current, ...progress });
+          updateSession(mergePTSessionProgress(current, progress));
           if (!actionApplied(action, progress)) throw new Error("PT 면접 상태가 변경됐어요. 상태를 다시 확인해 주세요.");
         }
         succeeded = true;

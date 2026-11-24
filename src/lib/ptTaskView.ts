@@ -25,7 +25,7 @@ export function ptTaskProblems(content: PTTaskContent) {
 }
 
 export function ptRelatedProblems(content: PTTaskContent, track?: PTTrack | null) {
-  const guidance = track ? content.trackGuidance[track] ?? "" : "";
+  const guidance = track ? content.trackGuidance?.[track] ?? "" : "";
   return ptTaskProblems(content).flatMap((problem, index) => {
     const number = index + 1;
     const numbered = new RegExp(`(?:문제\\s*${number}(?!\\d)|(?:^|\\D)${number}\\s*번(?:째)?\\s*문제)`);

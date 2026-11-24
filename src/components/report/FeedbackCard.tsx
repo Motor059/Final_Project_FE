@@ -29,19 +29,17 @@ export default function FeedbackCard({ data, index, kind = 'QUESTION', questionL
   const hasDeep = !noPresentation && !data.skipped && !!(data.weakAxis || (isPresentation ? hasOutline : data.improvedAnswer || data.tails?.length));
 
   return <div className="border border-[#F0EFED] rounded-[16px] overflow-hidden bg-white mb-[10px]">
-    <button type="button" aria-expanded={!pending && isOpen} aria-controls={contentId} disabled={pending} onClick={() => setIsOpen(!isOpen)} className="w-full flex items-start justify-between gap-3 px-[22px] py-[18px] text-left hover:bg-gray-50 transition-colors disabled:cursor-default">
-      <div className="flex min-w-0 flex-1 flex-col items-start gap-2 sm:flex-row sm:gap-[14px]">
-        <span className="text-[12px] text-[#A8A29E] font-semibold whitespace-nowrap">{isPresentation ? '발표' : questionLabel ?? `질문 ${index + 1}`}</span>
-        <span className="flex min-w-0 flex-wrap items-center gap-2 text-[14.5px] font-medium text-[#1C1917] text-left">
-          <span className="min-w-0 break-words">{data.shortTitle || (pending ? '피드백을 준비하고 있어요' : isPresentation ? 'PT 발표' : '질문 피드백')}</span>
-          {isPresentation && <span className="rounded-md bg-[#ECE7F3] px-2 py-0.5 text-[10.5px] font-semibold text-[#746680]">PT 발표</span>}
-          {hasEvidence && <span className="rounded-md bg-[#F1EDF6] px-2 py-0.5 text-[10.5px] font-semibold text-[#746680]">레포 기반</span>}
-        </span>
-      </div>
-      <div className="flex shrink-0 items-center gap-[12px]">
-        {pending ? <span className="inline-flex items-center gap-1.5 text-[12px] text-[#8A857D]"><LoaderCircle size={14} className="animate-spin" aria-hidden="true" />채점 중</span>
-          : <><span className="text-[16px] font-semibold" style={{ color: scoreColor(data.topicScore) }}>{scoreText(data.topicScore)}</span>{isOpen ? <ChevronUp className="w-4 h-4 text-[#A8A29E]" /> : <ChevronDown className="w-4 h-4 text-[#A8A29E]" />}</>}
-      </div>
+    <button type="button" aria-expanded={!pending && isOpen} aria-controls={contentId} disabled={pending} onClick={() => setIsOpen(!isOpen)} className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-2.5 px-[22px] py-[18px] text-left hover:bg-gray-50 transition-colors disabled:cursor-default sm:gap-x-[14px]">
+      <span className="inline-flex h-6 items-center whitespace-nowrap text-[12px] font-semibold leading-none text-[#A8A29E]">{isPresentation ? '발표' : questionLabel ?? `질문 ${index + 1}`}</span>
+      <span className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1 text-left text-[14.5px] font-medium leading-6 text-[#1C1917]">
+        <span className="min-w-0 max-w-full whitespace-normal [overflow-wrap:anywhere]">{data.shortTitle || (pending ? '피드백을 준비하고 있어요' : isPresentation ? 'PT 발표' : '질문 피드백')}</span>
+        {isPresentation && <span className="inline-flex h-6 shrink-0 items-center"><span className="inline-flex h-5 items-center rounded-md bg-[#ECE7F3] px-2 text-[10.5px] font-semibold leading-none whitespace-nowrap text-[#746680]">PT 발표</span></span>}
+        {hasEvidence && <span className="inline-flex h-6 shrink-0 items-center"><span className="inline-flex h-5 items-center rounded-md bg-[#F1EDF6] px-2 text-[10.5px] font-semibold leading-none whitespace-nowrap text-[#746680]">레포 기반</span></span>}
+      </span>
+      <span className="inline-flex h-6 shrink-0 items-center gap-2 whitespace-nowrap sm:gap-[12px]">
+        {pending ? <span className="inline-flex items-center gap-1.5 text-[12px] leading-none text-[#8A857D]"><LoaderCircle size={14} className="shrink-0 animate-spin" aria-hidden="true" />채점 중</span>
+          : <><span className="text-[16px] font-semibold leading-6 tabular-nums" style={{ color: scoreColor(data.topicScore) }}>{scoreText(data.topicScore)}</span>{isOpen ? <ChevronUp className="h-4 w-4 shrink-0 text-[#A8A29E]" /> : <ChevronDown className="h-4 w-4 shrink-0 text-[#A8A29E]" />}</>}
+      </span>
     </button>
 
     {!pending && isOpen && <div id={contentId} className="min-w-0 px-[22px] pb-[24px] pt-1 animate-in fade-in slide-in-from-top-2 motion-reduce:animate-none">

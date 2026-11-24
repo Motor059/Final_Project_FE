@@ -1,6 +1,8 @@
 import type { CompanyType, InterviewStage } from "@/types/setup";
 export type { CompanyType, InterviewStage } from "@/types/setup";
 
+export type InterviewFormat = "QA" | "PT";
+
 export type SessionStatus =
   | "GENERATING"
   | "READY"
@@ -11,8 +13,7 @@ export type SessionStatus =
 
 export interface SessionItem {
   sessionId: number;
-  format?: "QA" | "PT";
-  interviewType?: "QA" | "PT";
+  format: InterviewFormat | null;
   companyType: CompanyType;
   interviewStage: InterviewStage;
   companyName: string | null;

@@ -4,6 +4,7 @@ import type { PTAnswerResult, PTAudioAnswerRequest, PTAudioPresentationRequest, 
 import { createSessionSnapshot } from '@/lib/sessionSnapshot';
 import { getAuthVersion } from '@/lib/authStorage';
 import { ptAudioFileName, PT_AUDIO_MAX_BYTES, PT_TEXT_MAX_LENGTH } from "@/lib/ptPresentation";
+import { ptSessionTrackState, ptTrackConfigurationError, resolvePTTaskSettings } from "@/lib/ptTaskSettings";
 
 const optionsSnapshot = createSessionSnapshot<PTOptions>();
 export const getCachedPTOptions = () => optionsSnapshot.read();
@@ -29,7 +30,7 @@ function progressData<T extends PTProgress>(data: T, sessionId?: number): T {
     !Number.isFinite(Date.parse(data.serverTime)) ||
     !Number.isFinite(Date.parse(data.preparationDeadline)) ||
     (data.phase === "PRESENTING" && (
-      !data.track || !Number.isFinite(Date.parse(data.presentationStartedAt ?? "")) ||
+      !Number.isFinite(Date.parse(data.presentationStartedAt ?? "")) ||
       !Number.isFinite(Date.parse(data.presentationDeadline ?? ""))
     ))
   ) throw new Error("PT 진행 상태를 확인하지 못했습니다. 다시 불러와 주세요.");
@@ -47,7 +48,46 @@ function sessionData(data: PTSession): PTSession {
   ) {
     throw new Error("PT 세션 응답을 확인하지 못했습니다. 다시 불러와 주세요.");
   }
+  if (data.phase === "PRESENTING" && data.task.settings && !ptSessionTrackState(data).ready) {
+    throw new Error("발표 분야 설정을 확인하지 못했습니다. 상태를 다시 불러와 주세요.");
+  }
   return data;
+}
+
+async function readOptions(signal?: AbortSignal): Promise<PTOptions> {
+  const version = getAuthVersion();
+  const response = await api.get<ApiResponse<PTOptions>>("/api/v1/pt/options", { signal });
+  const data = response.data.data;
+  if (!data || !Array.isArray(data.companies) || !Array.isArray(data.tracks) || !Array.isArray(data.preparationMinutes)) {
+    throw new Error("PT 설정 응답을 확인하지 못했습니다. 다시 불러와 주세요.");
+  }
+  optionsSnapshot.write(data, version);
+  return data;
+}
+
+async function sessionWithSettings(data: PTSession, signal?: AbortSignal): Promise<PTSession> {
+  data = sessionData(data);
+  // Session settings describe the assigned task; options are only a fallback for
+  // servers that have added company settings before adding the session snapshot.
+  if (data.task.settings) return data;
+  const receivedAt = performance.now();
+  const cached = getCachedPTOptions();
+  const cachedCompany = cached?.companies.find((item) => item.companyId === data.task.companyId);
+  const options = cached && !ptTrackConfigurationError(resolvePTTaskSettings(cachedCompany?.settings, cached))
+    ? cached : await readOptions(signal);
+  const company = options.companies.find((item) => item.companyId === data.task.companyId);
+  if (!company && options.companies.some((item) => item.settings)) {
+    throw new Error("이 PT 과제의 설정을 확인하지 못했습니다. 다시 불러와 주세요.");
+  }
+  // Loading settings must not extend the preparation or presentation countdown.
+  return sessionData({ ...data,
+    serverTime: new Date(Date.parse(data.serverTime) + Math.max(0, performance.now() - receivedAt)).toISOString(),
+    task: { ...data.task, settings: resolvePTTaskSettings(company?.settings, options) },
+  });
+}
+
+export function mergePTSessionProgress(session: PTSession, progress: PTProgress): PTSession {
+  return sessionData({ ...session, ...progress });
 }
 
 function questionData(data: PTQuestionProgress, sessionId: number): PTQuestionProgress {
@@ -78,25 +118,16 @@ function answerData(data: PTAnswerResult, sessionId: number, questionId: number,
 }
 
 export const ptApi = {
-  getOptions: async (signal?: AbortSignal): Promise<PTOptions> => {
-    const version = getAuthVersion();
-    const response = await api.get<ApiResponse<PTOptions>>("/api/v1/pt/options", { signal });
-    const data = response.data.data;
-    if (!data || !Array.isArray(data.companies) || !Array.isArray(data.tracks) || !Array.isArray(data.preparationMinutes)) {
-      throw new Error("PT 설정 응답을 확인하지 못했습니다. 다시 불러와 주세요.");
-    }
-    optionsSnapshot.write(data, version);
-    return data;
-  },
+  getOptions: readOptions,
 
   createSession: async (request: PTCreateSessionRequest, signal?: AbortSignal): Promise<PTSession> => {
     const response = await api.post<ApiResponse<PTSession>>("/api/v1/pt/sessions", request, { signal });
-    return sessionData(response.data.data);
+    return sessionWithSettings(response.data.data, signal);
   },
 
   getSession: async (sessionId: number, signal?: AbortSignal): Promise<PTSession> => {
     const response = await api.get<ApiResponse<PTSession>>(`/api/v1/pt/sessions/${sessionId}`, { signal });
-    return sessionData(response.data.data);
+    return sessionWithSettings(response.data.data, signal);
   },
 
   selectTrack: async (sessionId: number, track: PTTrack, signal?: AbortSignal): Promise<PTProgress> => {
@@ -130,10 +161,10 @@ export const ptApi = {
     return progressData(response.data.data, sessionId);
   },
 
-  submitAudioPresentation: async (sessionId: number, request: PTAudioPresentationRequest, signal?: AbortSignal): Promise<PTProgress> => {
+  submitAudioPresentation: async (sessionId: number, request: PTAudioPresentationRequest, signal?: AbortSignal, maxSeconds = 300): Promise<PTProgress> => {
     if (!request.audio.size || request.audio.size > PT_AUDIO_MAX_BYTES ||
-      !Number.isInteger(request.durationSec) || request.durationSec < 1 || request.durationSec > 300) {
-      throw new Error("녹음 파일은 25MB 이하, 발표 길이는 1~300초여야 해요.");
+      !Number.isInteger(request.durationSec) || request.durationSec < 1 || request.durationSec > maxSeconds) {
+      throw new Error(`녹음 파일은 25MB 이하, 발표 길이는 1~${maxSeconds}초여야 해요.`);
     }
     const form = new FormData();
     form.append("requestId", request.requestId);

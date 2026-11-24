@@ -3,7 +3,7 @@ import { interviewApi } from '@/api/interviewApi';
 import type { CurrentQuestionData } from '@/api/api';
 import { isAxiosError } from 'axios';
 import { useAlertStore } from '@/store/useAlertStore';
-import { ANSWER_SECONDS, resetInterviewTimer, restoredInterviewSeconds } from '@/lib/interviewTimer';
+import { ANSWER_SECONDS, restoredInterviewSeconds } from '@/lib/interviewTimer';
 
 export interface AudioRecordingResult {
   blob: Blob;
@@ -23,6 +23,7 @@ interface InterviewState {
   currentMainIndex: number;
   phase: 'PREPARING' | 'ASKING' | 'RECORDING' | 'THINKING';
   inputMode: 'AUDIO' | 'TEXT';
+  textModeLocked: boolean;
   answerText: string;
   timeLeft: number;
   isFinished: boolean;
@@ -87,6 +88,7 @@ const initialState = {
   currentMainIndex: 1,
   phase: 'PREPARING' as const,
   inputMode: 'AUDIO' as const,
+  textModeLocked: false,
   answerText: '',
   timeLeft: ANSWER_SECONDS,
   isFinished: false,
@@ -125,9 +127,10 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
   },
   setInputMode: (mode) => {
     const state = get();
-    if (state.phase !== 'RECORDING' || state.isSubmitting || state.isFinished || state.isPaused) return;
-    if (state.inputMode === 'TEXT' && mode === 'AUDIO') return;
-    set({ inputMode: mode });
+    if (state.phase !== 'RECORDING' || state.isSubmitting || state.isFinished || state.isPaused || state.pendingAnswer || state.inputMode === mode) return;
+    if (mode === 'AUDIO' && state.textModeLocked) return;
+    set({ inputMode: mode, textModeLocked: mode === 'TEXT' || state.textModeLocked,
+      ...(mode === 'AUDIO' ? { audioStatus: 'IDLE' as const, audioError: null, stopAudioRecording: null, recordingAttempt: state.recordingAttempt + 1 } : {}) });
   },
   setAnswerText: (text) => set({ answerText: text }),
   setTimeLeft: (time) => set((state) => ({
@@ -144,7 +147,7 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
     }
   },
   setAudioStatus: (status) => set({ audioStatus: status }),
-  failAudio: (message) => set({ audioStatus: 'ERROR', audioError: message, inputMode: 'TEXT', stopAudioRecording: null }),
+  failAudio: (message) => set({ audioStatus: 'ERROR', audioError: message, inputMode: 'TEXT', textModeLocked: true, stopAudioRecording: null }),
   setQuestionAudioEnabled: (enabled) => {
     localStorage.setItem('questionAudioEnabled', String(enabled));
     set({ questionAudioEnabled: enabled });
@@ -166,11 +169,11 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
   restartAnswer: () => {
     const state = get();
     if (!state.pendingAnswer || state.isSubmitting || state.isPaused || state.questionError || state.isFinished) return;
-    if (state.sessionId && state.currentQuestion) resetInterviewTimer(state.sessionId, state.currentQuestion.questionId);
     set({
       phase: 'RECORDING', pendingAnswer: null, answerError: null,
       answerText: state.inputMode === 'TEXT' ? state.answerText : '',
-      timeLeft: ANSWER_SECONDS, recordingAttempt: state.recordingAttempt + 1,
+      timeLeft: state.sessionId && state.currentQuestion ? restoredInterviewSeconds(state.sessionId, state.currentQuestion.questionId) ?? state.timeLeft : state.timeLeft,
+      recordingAttempt: state.recordingAttempt + 1,
       audioStatus: 'IDLE', stopAudioRecording: null,
     });
   },
@@ -265,6 +268,7 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
         currentMainIndex: nextMainIndex,
         phase: 'ASKING',
         inputMode: get().inputMode,
+        textModeLocked: currentQuestion?.questionId === questionData.questionId ? get().textModeLocked : false,
         answerText: '',
         timeLeft: restoredInterviewSeconds(sessionId, questionData.questionId) ?? ANSWER_SECONDS,
         isSubmitting: false,
@@ -371,8 +375,9 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
       if (result.nextAction.type === 'FINISH') {
         set({ phase: 'THINKING', isFinished: true, isSubmitting: false, pendingAnswer: null, answerError: null });
       } else if (result.nextAction.type === 'RETRY_INPUT') {
-        resetInterviewTimer(sessionId, questionId);
-        set({ phase: 'RECORDING', isSubmitting: false, pendingAnswer: null, answerError: null, timeLeft: ANSWER_SECONDS, recordingAttempt: get().recordingAttempt + 1, audioStatus: 'IDLE', stopAudioRecording: null });
+        set({ phase: 'RECORDING', isSubmitting: false, pendingAnswer: null, answerError: null,
+          timeLeft: restoredInterviewSeconds(sessionId, questionId) ?? get().timeLeft,
+          recordingAttempt: get().recordingAttempt + 1, audioStatus: 'IDLE', stopAudioRecording: null });
         useAlertStore.getState().showAlert(result.nextAction.message || '답변이 너무 짧거나 인식되지 않았습니다. 다시 답변해 주세요.');
       } else if (result.nextAction.type === 'FOLLOW_UP' || result.nextAction.type === 'NEXT_MAIN') {
         set({ pendingAnswer: null, answerError: null });
@@ -388,10 +393,9 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
         await get().fetchNextQuestion(true);
         return;
       }
-      if (prepared || state.timeLeft === 0) resetInterviewTimer(sessionId, questionId);
       set({
         phase: 'RECORDING', isSubmitting: false, pendingAnswer: null, answerError: null,
-        timeLeft: prepared || state.timeLeft === 0 ? ANSWER_SECONDS : state.timeLeft,
+        timeLeft: restoredInterviewSeconds(sessionId, questionId) ?? get().timeLeft,
         recordingAttempt: get().recordingAttempt + 1, audioStatus: 'IDLE', stopAudioRecording: null,
       });
       if (!(error instanceof DOMException && error.name === 'AbortError')) {
